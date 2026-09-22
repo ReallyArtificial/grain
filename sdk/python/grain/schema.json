@@ -1,0 +1,1186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grain.reallyartificial.org/v1/schema.json",
+  "title": "AgentSpec",
+  "description": "A universal, structured data format for describing AI agents — quantified personality, typed behavior rules, channel-aware communication, and bounded self-modification.",
+  "type": "object",
+  "required": [
+    "specVersion",
+    "id",
+    "version",
+    "meta"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema reference for editor autocomplete"
+    },
+    "specVersion": {
+      "const": "1.0",
+      "description": "Schema version for forward compatibility"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "Unique identifier (kebab-case, like npm package names)"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+",
+      "description": "Semver version of this agent definition"
+    },
+    "extends": {
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "required": ["id", "version"],
+          "properties": {
+            "id": { "type": "string" },
+            "version": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      ],
+      "description": "Inherit from another AgentSpec (like class inheritance)"
+    },
+    "meta": { "$ref": "#/$defs/AgentMeta" },
+    "identity": { "$ref": "#/$defs/AgentIdentity" },
+    "voice": { "$ref": "#/$defs/AgentVoice" },
+    "cognition": { "$ref": "#/$defs/AgentCognition" },
+    "capabilities": { "$ref": "#/$defs/AgentCapabilities" },
+    "behavior": { "$ref": "#/$defs/AgentBehavior" },
+    "memory": { "$ref": "#/$defs/AgentMemory" },
+    "communication": { "$ref": "#/$defs/AgentCommunication" },
+    "adaptation": { "$ref": "#/$defs/AgentAdaptation" },
+    "observability": { "$ref": "#/$defs/AgentObservability" }
+  },
+  "$defs": {
+    "UnitFloat": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "A float between 0 and 1 (inclusive)",
+      "x-prompt-hint": "Used for quantified personality and threshold parameters"
+    },
+
+    "AgentMeta": {
+      "type": "object",
+      "required": ["name", "description"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "description": "Human-readable agent name" },
+        "description": { "type": "string", "description": "What this agent does" },
+        "author": { "type": "string" },
+        "license": { "type": "string" },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "url": { "type": "string", "description": "URL to agent's documentation or homepage" },
+        "model": { "$ref": "#/$defs/ModelPreference" }
+      }
+    },
+
+    "ModelPreference": {
+      "type": "object",
+      "required": ["minimumTier"],
+      "additionalProperties": false,
+      "properties": {
+        "minimumTier": {
+          "type": "string",
+          "enum": ["small", "medium", "large", "frontier"],
+          "description": "Minimum capability tier required"
+        },
+        "preferredProvider": { "type": "string", "description": "Preferred provider (informational, not binding)" },
+        "preferredModel": { "type": "string", "description": "Preferred model ID" },
+        "minimumContext": { "type": "integer", "minimum": 0, "description": "Required context window size in tokens" },
+        "requiresToolCalling": { "type": "boolean", "description": "Whether the agent requires tool/function calling" },
+        "requiresMultimodal": { "type": "boolean", "description": "Whether the agent requires vision/multimodal" }
+      }
+    },
+
+    "AgentIdentity": {
+      "type": "object",
+      "required": ["name", "role", "purpose", "expertise"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "description": "The agent's name as used in conversation" },
+        "role": { "type": "string", "description": "One-line role description (e.g., 'Senior DevOps Engineer')" },
+        "purpose": {
+          "type": "object",
+          "required": ["primary"],
+          "additionalProperties": false,
+          "properties": {
+            "primary": { "type": "string", "description": "Core purpose — what this agent exists to do" },
+            "secondary": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Additional objectives"
+            }
+          }
+        },
+        "expertise": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/DomainExpertise" },
+          "description": "Domain expertise areas with proficiency levels"
+        },
+        "relationships": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/AgentRelationship" },
+          "description": "Relationships to other agents or roles"
+        }
+      }
+    },
+
+    "DomainExpertise": {
+      "type": "object",
+      "required": ["domain", "proficiency"],
+      "additionalProperties": false,
+      "properties": {
+        "domain": { "type": "string" },
+        "proficiency": {
+          "$ref": "#/$defs/UnitFloat",
+          "description": "0 = awareness, 0.5 = working knowledge, 1 = deep expertise",
+          "x-prompt-hint": "Used to filter which domains appear as 'deep expertise' in prompts (threshold: 0.7)"
+        },
+        "subtopics": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+
+    "AgentRelationship": {
+      "type": "object",
+      "required": ["target", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "target": { "type": "string", "description": "ID or role of the related agent" },
+        "type": {
+          "type": "string",
+          "enum": ["reports-to", "delegates-to", "collaborates-with", "supervises", "escalates-to"]
+        },
+        "permissions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["read", "write", "execute", "delegate"]
+          }
+        }
+      }
+    },
+
+    "AgentVoice": {
+      "type": "object",
+      "required": ["personality", "language"],
+      "additionalProperties": false,
+      "properties": {
+        "personality": { "$ref": "#/$defs/PersonalityVector" },
+        "language": { "$ref": "#/$defs/LanguageStyle" },
+        "channelOverrides": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/VoiceOverride" },
+          "description": "Channel-specific overrides (Slack gets emoji, email gets formal, etc.)"
+        }
+      }
+    },
+
+    "PersonalityVector": {
+      "type": "object",
+      "required": ["formality", "warmth", "humor", "assertiveness", "verbosity", "confidence", "concreteness", "urgency"],
+      "additionalProperties": false,
+      "description": "8-dimension personality model. All values are 0-1 floats.",
+      "x-prompt-hint": "Each dimension maps to natural language directives via threshold rules (see SPECIFICATION.md)",
+      "properties": {
+        "formality": {
+          "$ref": "#/$defs/UnitFloat",
+          "description": "0 = casual/informal, 1 = highly formal",
+          "x-prompt-hint": ">0.7: formal tone | <0.3: casual tone | else: balanced"
+        },
+        "warmth": {
+          "$ref": "#/$defs/UnitFloat",
+          "description": "0 = cold/clinical, 1 = warm/empathetic",
+          "x-prompt-hint": ">0.7: warm and empathetic | <0.3: direct and clinical"
+        },
+        "humor": {
+          "$ref": "#/$defs/UnitFloat",
+          "description": "0 = dead serious, 1 = playful/witty",
+          "x-prompt-hint": ">0.7: use humor | <0.2: stay serious"
+        },
+        "assertiveness": {
+          "$ref": "#/$defs/UnitFloat",
+          "description": "0 = passive/reactive, 1 = proactive/assertive",
+          "x-prompt-hint": ">0.7: proactive recommendations | <0.3: reactive, wait for direction"
+        },
+        "verbosity": {
+          "$ref": "#/$defs/UnitFloat",
+          "description": "0 = brief/terse, 1 = detailed/verbose",
+          "x-prompt-hint": ">0.7: detailed explanations | <0.3: brief, no fluff"
+        },
+        "confidence": {
+          "$ref": "#/$defs/UnitFloat",
+          "description": "0 = cautious/hedging, 1 = bold/decisive",
+          "x-prompt-hint": ">0.7: decisive, no hedging | <0.3: communicate uncertainty openly"
+        },
+        "concreteness": {
+          "$ref": "#/$defs/UnitFloat",
+          "description": "0 = abstract/theoretical, 1 = concrete/practical",
+          "x-prompt-hint": ">0.7: concrete examples and actionable steps | <0.3: focus on concepts and frameworks"
+        },
+        "urgency": {
+          "$ref": "#/$defs/UnitFloat",
+          "description": "0 = patient/thorough, 1 = urgent/action-oriented",
+          "x-prompt-hint": ">0.7: prioritize action over perfection | <0.3: quality over speed"
+        }
+      }
+    },
+
+    "LanguageStyle": {
+      "type": "object",
+      "required": ["locale", "sentenceLength", "jargonLevel", "emojiUsage", "structure", "usesAnalogies", "addressing"],
+      "additionalProperties": false,
+      "properties": {
+        "locale": { "type": "string", "description": "Primary language (BCP 47 tag, e.g., 'en-US')" },
+        "sentenceLength": {
+          "type": "string",
+          "enum": ["short", "medium", "long"],
+          "x-prompt-hint": "short: punchy sentences | long: flowing explanations"
+        },
+        "jargonLevel": {
+          "type": "string",
+          "enum": ["none", "moderate", "heavy"],
+          "x-prompt-hint": "none: plain language | heavy: domain-specific terminology"
+        },
+        "emojiUsage": {
+          "type": "string",
+          "enum": ["never", "sparingly", "frequently"],
+          "x-prompt-hint": "frequently: add emoji for personality | never: no emoji"
+        },
+        "structure": {
+          "type": "string",
+          "enum": ["prose", "bullets", "mixed"],
+          "x-prompt-hint": "bullets: prefer lists | prose: flowing paragraphs"
+        },
+        "usesAnalogies": {
+          "type": "boolean",
+          "description": "Whether to use analogies and metaphors",
+          "x-prompt-hint": "true: use analogies to explain complex ideas"
+        },
+        "addressing": {
+          "type": "string",
+          "enum": ["first-person", "third-person", "neutral"]
+        }
+      }
+    },
+
+    "VoiceOverride": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Partial override of PersonalityVector and LanguageStyle fields for a specific channel",
+      "properties": {
+        "formality": { "$ref": "#/$defs/UnitFloat" },
+        "warmth": { "$ref": "#/$defs/UnitFloat" },
+        "humor": { "$ref": "#/$defs/UnitFloat" },
+        "assertiveness": { "$ref": "#/$defs/UnitFloat" },
+        "verbosity": { "$ref": "#/$defs/UnitFloat" },
+        "confidence": { "$ref": "#/$defs/UnitFloat" },
+        "concreteness": { "$ref": "#/$defs/UnitFloat" },
+        "urgency": { "$ref": "#/$defs/UnitFloat" },
+        "locale": { "type": "string" },
+        "sentenceLength": { "type": "string", "enum": ["short", "medium", "long"] },
+        "jargonLevel": { "type": "string", "enum": ["none", "moderate", "heavy"] },
+        "emojiUsage": { "type": "string", "enum": ["never", "sparingly", "frequently"] },
+        "structure": { "type": "string", "enum": ["prose", "bullets", "mixed"] },
+        "usesAnalogies": { "type": "boolean" },
+        "addressing": { "type": "string", "enum": ["first-person", "third-person", "neutral"] }
+      }
+    },
+
+    "AgentCognition": {
+      "type": "object",
+      "required": ["reasoningStyle", "decisionMaking", "uncertainty", "taskStrategy"],
+      "additionalProperties": false,
+      "properties": {
+        "reasoningStyle": { "$ref": "#/$defs/ReasoningStyle" },
+        "decisionMaking": { "$ref": "#/$defs/DecisionMaking" },
+        "uncertainty": { "$ref": "#/$defs/UncertaintyHandling" },
+        "taskStrategy": { "$ref": "#/$defs/TaskStrategy" }
+      }
+    },
+
+    "ReasoningStyle": {
+      "type": "object",
+      "required": ["primary", "showReasoning", "analysisDepth", "multiPerspective"],
+      "additionalProperties": false,
+      "properties": {
+        "primary": {
+          "type": "string",
+          "enum": ["analytical", "creative", "systematic", "intuitive", "socratic"]
+        },
+        "showReasoning": {
+          "type": "boolean",
+          "x-prompt-hint": "true: show reasoning process step by step"
+        },
+        "analysisDepth": {
+          "type": "string",
+          "enum": ["surface", "moderate", "deep", "exhaustive"],
+          "x-prompt-hint": "deep/exhaustive: analyze problems deeply before responding"
+        },
+        "multiPerspective": {
+          "type": "boolean",
+          "x-prompt-hint": "true: consider multiple perspectives before concluding"
+        }
+      }
+    },
+
+    "DecisionMaking": {
+      "type": "object",
+      "required": ["speed", "evidenceThreshold", "reversibilityPreference", "autonomy"],
+      "additionalProperties": false,
+      "properties": {
+        "speed": {
+          "$ref": "#/$defs/UnitFloat",
+          "description": "0 = deliberate, 1 = snap decisions"
+        },
+        "evidenceThreshold": {
+          "$ref": "#/$defs/UnitFloat",
+          "description": "0 = little evidence needed, 1 = extensive evidence required"
+        },
+        "reversibilityPreference": {
+          "type": "string",
+          "enum": ["prefer-reversible", "neutral", "bias-to-action"]
+        },
+        "autonomy": {
+          "type": "string",
+          "enum": ["always-ask", "ask-for-major", "decide-unless-ambiguous", "fully-autonomous"],
+          "x-prompt-hint": "fully-autonomous: make decisions independently | always-ask: confirm before acting"
+        }
+      }
+    },
+
+    "UncertaintyHandling": {
+      "type": "object",
+      "required": ["lowConfidenceAction", "confidenceFloor", "communicateUncertainty", "conflictResolution"],
+      "additionalProperties": false,
+      "properties": {
+        "lowConfidenceAction": {
+          "type": "string",
+          "enum": ["ask", "hedge", "state-assumption", "refuse"],
+          "x-prompt-hint": "ask: ask for clarification when confidence is low"
+        },
+        "confidenceFloor": {
+          "$ref": "#/$defs/UnitFloat",
+          "description": "Confidence threshold below which lowConfidenceAction triggers",
+          "x-prompt-hint": "Rendered as percentage in prompts (e.g., 0.4 → 40%)"
+        },
+        "communicateUncertainty": {
+          "type": "boolean",
+          "x-prompt-hint": "true: explicitly state confidence level when uncertain"
+        },
+        "conflictResolution": {
+          "type": "string",
+          "enum": ["ask-user", "use-most-recent", "use-most-authoritative", "present-both"]
+        }
+      }
+    },
+
+    "TaskStrategy": {
+      "type": "object",
+      "required": ["decomposition", "maxParallelism", "checkpointing", "blockingStrategy"],
+      "additionalProperties": false,
+      "properties": {
+        "decomposition": {
+          "type": "string",
+          "enum": ["top-down", "bottom-up", "iterative"]
+        },
+        "maxParallelism": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "checkpointing": { "type": "boolean" },
+        "blockingStrategy": {
+          "type": "string",
+          "enum": ["wait", "skip-and-return", "find-alternative", "escalate"]
+        }
+      }
+    },
+
+    "AgentCapabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tools": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ToolCapability" }
+        },
+        "skills": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/SkillDefinition" }
+        },
+        "knowledge": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/KnowledgeSource" }
+        },
+        "outputFormats": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/OutputFormat" }
+        }
+      }
+    },
+
+    "ToolCapability": {
+      "type": "object",
+      "required": ["id", "usage"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "description": "Tool identifier (matches runtime tool registry)" },
+        "usage": { "type": "string", "description": "When to use this tool" },
+        "requiresConfirmation": { "type": "boolean" },
+        "rateLimit": {
+          "type": "object",
+          "required": ["max", "per"],
+          "additionalProperties": false,
+          "properties": {
+            "max": { "type": "integer", "minimum": 1 },
+            "per": { "type": "string", "enum": ["message", "conversation", "hour"] }
+          }
+        }
+      }
+    },
+
+    "SkillDefinition": {
+      "type": "object",
+      "required": ["name", "description"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "requiredTools": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "steps": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "successCriteria": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+
+    "KnowledgeSource": {
+      "type": "object",
+      "required": ["id", "type", "domain"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": ["embedded", "retrieval", "api", "file-system", "database"]
+        },
+        "domain": { "type": "string" },
+        "freshness": {
+          "type": "string",
+          "enum": ["static", "daily", "real-time"]
+        },
+        "priority": { "type": "integer" }
+      }
+    },
+
+    "OutputFormat": {
+      "type": "object",
+      "required": ["format"],
+      "additionalProperties": false,
+      "properties": {
+        "format": { "type": "string", "description": "MIME type or format identifier" },
+        "condition": { "type": "string" }
+      }
+    },
+
+    "AgentBehavior": {
+      "type": "object",
+      "required": ["rules", "boundaries"],
+      "additionalProperties": false,
+      "properties": {
+        "rules": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/BehaviorRule" }
+        },
+        "boundaries": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Boundary" }
+        },
+        "triggers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/BehaviorTrigger" }
+        },
+        "escalation": { "$ref": "#/$defs/EscalationPolicy" }
+      }
+    },
+
+    "BehaviorRule": {
+      "type": "object",
+      "required": ["id", "condition", "action"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "description": "Unique rule identifier" },
+        "condition": { "$ref": "#/$defs/RuleCondition" },
+        "action": { "$ref": "#/$defs/RuleAction" },
+        "priority": { "type": "integer", "description": "Higher wins when rules conflict" },
+        "overridable": { "type": "boolean" }
+      }
+    },
+
+    "RuleCondition": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "always" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "topics"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "when-topic" },
+            "topics": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "sentiment"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "when-sentiment" },
+            "sentiment": { "type": "string", "enum": ["positive", "negative", "neutral", "frustrated"] }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "context"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "when-context" },
+            "context": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "roles"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "when-user-role" },
+            "roles": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "capability"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "when-capability-missing" },
+            "capability": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "threshold"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "when-confidence-below" },
+            "threshold": { "$ref": "#/$defs/UnitFloat" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "operator", "conditions"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "compound" },
+            "operator": { "type": "string", "enum": ["and", "or"] },
+            "conditions": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/RuleCondition" }
+            }
+          }
+        }
+      ]
+    },
+
+    "RuleAction": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "style"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "respond-with-style" },
+            "style": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "formality": { "$ref": "#/$defs/UnitFloat" },
+                "warmth": { "$ref": "#/$defs/UnitFloat" },
+                "humor": { "$ref": "#/$defs/UnitFloat" },
+                "assertiveness": { "$ref": "#/$defs/UnitFloat" },
+                "verbosity": { "$ref": "#/$defs/UnitFloat" },
+                "confidence": { "$ref": "#/$defs/UnitFloat" },
+                "concreteness": { "$ref": "#/$defs/UnitFloat" },
+                "urgency": { "$ref": "#/$defs/UnitFloat" }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "tool"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "use-tool" },
+            "tool": { "type": "string" },
+            "params": { "type": "object" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "target", "reason"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "escalate" },
+            "target": { "type": "string" },
+            "reason": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "message"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "refuse" },
+            "message": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "target"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "redirect" },
+            "target": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "depth"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "adjust-depth" },
+            "depth": { "type": "string", "enum": ["surface", "moderate", "deep"] }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "require-confirmation" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "event", "level"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "log-event" },
+            "event": { "type": "string" },
+            "level": { "type": "string", "enum": ["info", "warn", "error"] }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "handler"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "custom" },
+            "handler": { "type": "string" },
+            "params": { "type": "object" }
+          }
+        }
+      ]
+    },
+
+    "Boundary": {
+      "type": "object",
+      "required": ["description", "category", "enforcement", "onViolation"],
+      "additionalProperties": false,
+      "properties": {
+        "description": { "type": "string" },
+        "category": {
+          "type": "string",
+          "enum": ["content", "action", "data", "scope", "safety"]
+        },
+        "enforcement": {
+          "type": "string",
+          "enum": ["hard", "soft"]
+        },
+        "onViolation": {
+          "type": "string",
+          "enum": ["refuse", "warn", "redirect", "escalate"]
+        },
+        "message": { "type": "string", "description": "Message shown when boundary is triggered" }
+      }
+    },
+
+    "BehaviorTrigger": {
+      "type": "object",
+      "required": ["event", "action"],
+      "additionalProperties": false,
+      "properties": {
+        "event": { "$ref": "#/$defs/TriggerEvent" },
+        "action": { "$ref": "#/$defs/RuleAction" },
+        "cooldown": { "type": "integer", "minimum": 0, "description": "Cooldown in seconds" }
+      }
+    },
+
+    "TriggerEvent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "keywords"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "keyword" },
+            "keywords": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "intents"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "intent" },
+            "intents": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "durationSeconds"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "silence" },
+            "durationSeconds": { "type": "integer", "minimum": 0 }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "error" },
+            "errorType": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "metric", "operator", "value"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "threshold" },
+            "metric": { "type": "string" },
+            "operator": { "type": "string", "enum": ["gt", "lt", "eq"] },
+            "value": { "type": "number" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "cron"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "schedule" },
+            "cron": { "type": "string" }
+          }
+        }
+      ]
+    },
+
+    "EscalationPolicy": {
+      "type": "object",
+      "required": ["conditions", "defaultTarget", "handoffStrategy"],
+      "additionalProperties": false,
+      "properties": {
+        "conditions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/EscalationCondition" }
+        },
+        "defaultTarget": { "type": "string" },
+        "handoffStrategy": {
+          "type": "string",
+          "enum": ["full-transcript", "summary", "structured-handoff"]
+        },
+        "maxRetries": { "type": "integer", "minimum": 0 }
+      }
+    },
+
+    "EscalationCondition": {
+      "type": "object",
+      "required": ["trigger"],
+      "additionalProperties": false,
+      "properties": {
+        "trigger": {
+          "type": "string",
+          "enum": ["confidence-low", "user-frustrated", "out-of-scope", "safety-concern", "repeated-failure", "explicit-request"]
+        },
+        "threshold": { "$ref": "#/$defs/UnitFloat" },
+        "target": { "type": "string" }
+      }
+    },
+
+    "AgentMemory": {
+      "type": "object",
+      "required": ["retention", "contextStrategy"],
+      "additionalProperties": false,
+      "properties": {
+        "retention": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/RetentionPolicy" }
+        },
+        "contextStrategy": { "$ref": "#/$defs/ContextStrategy" },
+        "persistentState": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/StateSchema" }
+        }
+      }
+    },
+
+    "RetentionPolicy": {
+      "type": "object",
+      "required": ["category", "duration"],
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "type": "string",
+          "enum": ["user-preferences", "conversation-history", "task-state", "learned-patterns", "corrections", "facts"]
+        },
+        "duration": {
+          "type": "string",
+          "enum": ["conversation", "session", "days", "permanent"]
+        },
+        "days": { "type": "integer", "minimum": 1, "description": "Number of days (when duration = 'days')" },
+        "maxItems": { "type": "integer", "minimum": 1 },
+        "priority": { "type": "integer", "description": "Higher = keep longer under memory pressure" }
+      }
+    },
+
+    "ContextStrategy": {
+      "type": "object",
+      "required": ["overflow", "prioritize", "autoSummarize"],
+      "additionalProperties": false,
+      "properties": {
+        "overflow": {
+          "type": "string",
+          "enum": ["summarize", "sliding-window", "smart-select", "truncate"]
+        },
+        "prioritize": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["recent", "user-stated", "task-relevant", "corrections"]
+          }
+        },
+        "autoSummarize": { "type": "boolean" }
+      }
+    },
+
+    "StateSchema": {
+      "type": "object",
+      "required": ["key", "type", "description", "agentWritable"],
+      "additionalProperties": false,
+      "properties": {
+        "key": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": ["string", "number", "boolean", "array", "object"]
+        },
+        "description": { "type": "string" },
+        "defaultValue": {},
+        "agentWritable": { "type": "boolean" }
+      }
+    },
+
+    "AgentCommunication": {
+      "type": "object",
+      "required": ["channels", "input", "output"],
+      "additionalProperties": false,
+      "properties": {
+        "channels": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ChannelConfig" }
+        },
+        "input": { "$ref": "#/$defs/InputProcessing" },
+        "output": { "$ref": "#/$defs/OutputProcessing" },
+        "interAgent": { "$ref": "#/$defs/InterAgentConfig" }
+      }
+    },
+
+    "ChannelConfig": {
+      "type": "object",
+      "required": ["channel", "enabled"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "type": "string", "description": "Channel identifier (e.g., 'slack', 'email', 'api', 'voice')" },
+        "enabled": { "type": "boolean" },
+        "voiceOverrides": { "$ref": "#/$defs/VoiceOverride" },
+        "constraints": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "maxLength": { "type": "integer", "minimum": 1 },
+            "supportsMarkdown": { "type": "boolean" },
+            "supportsImages": { "type": "boolean" },
+            "supportsButtons": { "type": "boolean" }
+          }
+        }
+      }
+    },
+
+    "InputProcessing": {
+      "type": "object",
+      "required": ["languages", "typoTolerance", "ambiguityResolution", "modalities"],
+      "additionalProperties": false,
+      "properties": {
+        "languages": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "typoTolerance": { "type": "boolean" },
+        "ambiguityResolution": {
+          "type": "string",
+          "enum": ["ask", "best-guess", "ask-if-high-stakes"]
+        },
+        "modalities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["text", "image", "audio", "file"]
+          }
+        }
+      }
+    },
+
+    "OutputProcessing": {
+      "type": "object",
+      "required": ["defaultFormat", "citations", "structuredOutput"],
+      "additionalProperties": false,
+      "properties": {
+        "defaultFormat": {
+          "type": "string",
+          "enum": ["text", "markdown", "html", "json"]
+        },
+        "citations": {
+          "type": "string",
+          "enum": ["always", "when-available", "never"]
+        },
+        "maxLength": {
+          "type": "object",
+          "required": ["value", "unit"],
+          "additionalProperties": false,
+          "properties": {
+            "value": { "type": "integer", "minimum": 1 },
+            "unit": { "type": "string", "enum": ["tokens", "characters"] }
+          }
+        },
+        "structuredOutput": { "type": "boolean" }
+      }
+    },
+
+    "InterAgentConfig": {
+      "type": "object",
+      "required": ["protocols", "exposedCapabilities", "requestableCapabilities"],
+      "additionalProperties": false,
+      "properties": {
+        "protocols": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["a2a", "mcp", "custom"]
+          }
+        },
+        "exposedCapabilities": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "requestableCapabilities": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "auth": {
+          "type": "string",
+          "enum": ["none", "token", "mutual-tls", "oauth"]
+        }
+      }
+    },
+
+    "AgentAdaptation": {
+      "type": "object",
+      "required": ["enabled"],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "driftBounds": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/DriftBound" }
+        },
+        "learning": { "$ref": "#/$defs/LearningConfig" },
+        "feedback": { "$ref": "#/$defs/FeedbackConfig" }
+      }
+    },
+
+    "DriftBound": {
+      "type": "object",
+      "required": ["parameter", "maxDrift", "driftRate", "resetsPerConversation"],
+      "additionalProperties": false,
+      "properties": {
+        "parameter": { "type": "string", "description": "Path to the parameter (e.g., 'voice.personality.formality')" },
+        "maxDrift": {
+          "$ref": "#/$defs/UnitFloat",
+          "description": "Maximum drift from original value"
+        },
+        "driftRate": {
+          "type": "string",
+          "enum": ["immediate", "gradual", "slow"]
+        },
+        "resetsPerConversation": { "type": "boolean" }
+      }
+    },
+
+    "LearningConfig": {
+      "type": "object",
+      "required": ["sources", "minSamples", "requiresApproval"],
+      "additionalProperties": false,
+      "properties": {
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["user-feedback", "task-outcomes", "corrections", "examples"]
+          }
+        },
+        "minSamples": { "type": "integer", "minimum": 1 },
+        "requiresApproval": { "type": "boolean" }
+      }
+    },
+
+    "FeedbackConfig": {
+      "type": "object",
+      "required": ["collection", "application", "conflictResolution"],
+      "additionalProperties": false,
+      "properties": {
+        "collection": {
+          "type": "string",
+          "enum": ["explicit-ask", "implicit-signals", "both"]
+        },
+        "application": {
+          "type": "string",
+          "enum": ["immediate", "batched", "manual-review"]
+        },
+        "conflictResolution": {
+          "type": "string",
+          "enum": ["latest-wins", "majority-wins", "ask-user"]
+        }
+      }
+    },
+
+    "AgentObservability": {
+      "type": "object",
+      "required": ["logging", "metrics", "successCriteria"],
+      "additionalProperties": false,
+      "properties": {
+        "logging": { "$ref": "#/$defs/LoggingConfig" },
+        "metrics": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/MetricDefinition" }
+        },
+        "successCriteria": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/SuccessCriterion" }
+        }
+      }
+    },
+
+    "LoggingConfig": {
+      "type": "object",
+      "required": ["level", "alwaysLog", "conversationLogging", "piiHandling"],
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": ["debug", "info", "warn", "error"]
+        },
+        "alwaysLog": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["tool-use", "escalation", "boundary-hit", "error", "rule-fired"]
+          }
+        },
+        "conversationLogging": {
+          "type": "string",
+          "enum": ["full", "summary", "none"]
+        },
+        "piiHandling": {
+          "type": "string",
+          "enum": ["redact", "hash", "allow"]
+        }
+      }
+    },
+
+    "MetricDefinition": {
+      "type": "object",
+      "required": ["name", "description", "type", "event"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": ["counter", "gauge", "histogram", "rate"]
+        },
+        "event": { "type": "string" }
+      }
+    },
+
+    "SuccessCriterion": {
+      "type": "object",
+      "required": ["description", "metric", "target"],
+      "additionalProperties": false,
+      "properties": {
+        "description": { "type": "string" },
+        "metric": { "type": "string" },
+        "target": {
+          "type": "object",
+          "required": ["operator", "value"],
+          "additionalProperties": false,
+          "properties": {
+            "operator": {
+              "type": "string",
+              "enum": ["gt", "lt", "eq", "gte", "lte"]
+            },
+            "value": { "type": "number" }
+          }
+        },
+        "window": {
+          "type": "string",
+          "enum": ["per-conversation", "per-day", "per-week"]
+        }
+      }
+    }
+  }
+}

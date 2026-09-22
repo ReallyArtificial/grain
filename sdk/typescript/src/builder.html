@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Grain Builder</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌾</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f5f0e8;
+      --surface: #fff;
+      --surface-alt: #ebe5d9;
+      --ink: #1a1a1a;
+      --ink-dim: #6b6560;
+      --ink-faint: #a09890;
+      --red: #c0392b;
+      --green: #1a7a4c;
+      --blue: #1a4a7a;
+      --border: #1a1a1a;
+      --border-light: #ccc5b8;
+      --mono: "IBM Plex Mono", "Menlo", monospace;
+      --sans: "Space Grotesk", -apple-system, system-ui, sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    ::selection { background: #1a1a1a; color: #f5f0e8; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* NAV */
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 24px;
+      border-bottom: 2px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 100;
+    }
+    .nav-title {
+      font-family: var(--mono);
+      font-weight: 600;
+      font-size: 0.9rem;
+      letter-spacing: -0.02em;
+    }
+    .nav-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .nav-btn {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 6px 14px;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      color: var(--ink);
+    }
+    .nav-btn:hover { background: var(--ink); color: var(--bg); }
+
+    /* LAYOUT */
+    .layout {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      min-height: calc(100vh - 52px);
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    /* FORM */
+    .form-panel {
+      border-right: 2px solid var(--border);
+      overflow-y: auto;
+      max-height: calc(100vh - 52px);
+    }
+    @media (max-width: 900px) {
+      .form-panel { border-right: none; border-bottom: 2px solid var(--border); max-height: none; }
+    }
+
+    details {
+      border-bottom: 1px solid var(--border-light);
+    }
+    details[open] > summary { border-bottom: 1px solid var(--border-light); }
+    summary {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 14px 20px;
+      cursor: pointer;
+      user-select: none;
+      color: var(--ink-dim);
+      background: var(--surface-alt);
+    }
+    summary:hover { color: var(--ink); }
+    summary::marker { color: var(--ink-faint); }
+
+    .form-section {
+      padding: 16px 20px;
+      background: var(--surface);
+    }
+
+    .field {
+      margin-bottom: 14px;
+    }
+    .field:last-child { margin-bottom: 0; }
+    .field-label {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-dim);
+      margin-bottom: 5px;
+      display: block;
+    }
+    .field input[type="text"],
+    .field input[type="number"],
+    .field textarea,
+    .field select {
+      width: 100%;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      padding: 8px 12px;
+      border: 1.5px solid var(--border-light);
+      background: var(--surface);
+      color: var(--ink);
+      outline: none;
+    }
+    .field input:focus,
+    .field textarea:focus,
+    .field select:focus {
+      border-color: var(--ink);
+    }
+    .field textarea { resize: vertical; min-height: 60px; line-height: 1.5; }
+    .field select { appearance: none; cursor: pointer; }
+
+    /* SLIDER */
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .slider-label {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--ink-dim);
+      width: 100px;
+      flex-shrink: 0;
+    }
+    .slider-row input[type="range"] {
+      flex: 1;
+      height: 4px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: var(--border-light);
+      outline: none;
+      cursor: pointer;
+    }
+    .slider-row input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      background: var(--ink);
+      border-radius: 0;
+      cursor: pointer;
+    }
+    .slider-row input[type="range"]::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      background: var(--ink);
+      border: none;
+      border-radius: 0;
+      cursor: pointer;
+    }
+    .slider-val {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 600;
+      width: 32px;
+      text-align: right;
+    }
+    .slider-directive {
+      font-size: 0.72rem;
+      color: var(--ink-faint);
+      margin-left: 110px;
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+
+    /* PRESETS */
+    .presets {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .preset-btn {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 4px 10px;
+      border: 1px solid var(--border-light);
+      background: var(--surface);
+      cursor: pointer;
+      color: var(--ink-dim);
+    }
+    .preset-btn:hover { background: var(--ink); color: var(--bg); }
+
+    /* REPEATABLE */
+    .repeatable-item {
+      border: 1px solid var(--border-light);
+      padding: 12px;
+      margin-bottom: 8px;
+      position: relative;
+      background: var(--surface);
+    }
+    .remove-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      padding: 2px 8px;
+      border: 1px solid var(--border-light);
+      background: var(--surface);
+      cursor: pointer;
+      color: var(--red);
+    }
+    .remove-btn:hover { background: var(--red); color: white; border-color: var(--red); }
+    .add-btn {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 6px 12px;
+      border: 1.5px dashed var(--border-light);
+      background: transparent;
+      cursor: pointer;
+      color: var(--ink-dim);
+      width: 100%;
+      margin-top: 8px;
+    }
+    .add-btn:hover { border-color: var(--ink); color: var(--ink); }
+
+    /* OUTPUT PANEL */
+    .output-panel {
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 52px;
+      max-height: calc(100vh - 52px);
+    }
+    @media (max-width: 900px) {
+      .output-panel { position: static; max-height: none; }
+    }
+
+    .output-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border-light);
+      background: var(--surface-alt);
+    }
+    .output-tab {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 10px 16px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      color: var(--ink-dim);
+      border-right: 1px solid var(--border-light);
+    }
+    .output-tab.active { background: var(--ink); color: var(--bg); }
+    .output-tab:hover:not(.active) { background: var(--surface); }
+
+    .output-body {
+      flex: 1;
+      overflow: auto;
+      background: var(--surface);
+    }
+    .output-body pre {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      line-height: 1.75;
+      padding: 20px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      color: var(--ink);
+    }
+
+    .output-footer {
+      padding: 10px 20px;
+      border-top: 1px solid var(--border-light);
+      background: var(--surface-alt);
+      font-family: var(--mono);
+      font-size: 0.72rem;
+    }
+    .output-footer.valid { color: var(--green); }
+    .output-footer.invalid { color: var(--red); }
+
+    /* CHANNEL SELECTOR in output */
+    .channel-select {
+      margin-left: auto;
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      padding: 4px 8px;
+      border: 1px solid var(--border-light);
+      background: var(--surface);
+    }
+
+    /* CHECKBOX */
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .checkbox-row input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+    }
+    .checkbox-row label {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--ink-dim);
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div class="nav">
+  <span class="nav-title">grain builder</span>
+  <div class="nav-actions">
+    <button class="nav-btn" id="btn-download">Download YAML</button>
+    <button class="nav-btn" id="btn-copy">Copy</button>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- FORM PANEL -->
+  <div class="form-panel">
+
+    <!-- META -->
+    <details open>
+      <summary>Meta</summary>
+      <div class="form-section">
+        <div class="field">
+          <label class="field-label">ID</label>
+          <input type="text" data-path="id" placeholder="my-agent">
+        </div>
+        <div class="field">
+          <label class="field-label">Name</label>
+          <input type="text" data-path="meta.name" placeholder="My Agent">
+        </div>
+        <div class="field">
+          <label class="field-label">Description</label>
+          <textarea data-path="meta.description" placeholder="What does this agent do?"></textarea>
+        </div>
+        <div class="field">
+          <label class="field-label">Version</label>
+          <input type="text" data-path="version" placeholder="1.0.0">
+        </div>
+      </div>
+    </details>
+
+    <!-- IDENTITY -->
+    <details open>
+      <summary>Identity</summary>
+      <div class="form-section">
+        <div class="field">
+          <label class="field-label">Name</label>
+          <input type="text" data-path="identity.name" placeholder="Alex">
+        </div>
+        <div class="field">
+          <label class="field-label">Role</label>
+          <input type="text" data-path="identity.role" placeholder="Senior Support Specialist">
+        </div>
+        <div class="field">
+          <label class="field-label">Primary Purpose</label>
+          <textarea data-path="identity.purpose.primary" placeholder="Resolve customer issues quickly"></textarea>
+        </div>
+        <div class="field">
+          <label class="field-label">Secondary Purposes</label>
+          <div id="secondary-purposes"></div>
+          <button class="add-btn" data-add="secondary-purpose">+ Add Secondary Purpose</button>
+        </div>
+        <div class="field">
+          <label class="field-label">Expertise</label>
+          <div id="expertise-list"></div>
+          <button class="add-btn" data-add="expertise">+ Add Expertise</button>
+        </div>
+      </div>
+    </details>
+
+    <!-- PERSONALITY -->
+    <details open>
+      <summary>Personality</summary>
+      <div class="form-section">
+        <div class="presets">
+          <button class="preset-btn" data-preset="professional">Professional</button>
+          <button class="preset-btn" data-preset="friendly">Friendly</button>
+          <button class="preset-btn" data-preset="expert">Expert</button>
+          <button class="preset-btn" data-preset="creative">Creative</button>
+          <button class="preset-btn" data-preset="executor">Executor</button>
+        </div>
+        <div id="personality-sliders"></div>
+      </div>
+    </details>
+
+    <!-- LANGUAGE -->
+    <details>
+      <summary>Language Style</summary>
+      <div class="form-section">
+        <div class="field">
+          <label class="field-label">Locale</label>
+          <input type="text" data-path="voice.language.locale" placeholder="en">
+        </div>
+        <div class="field">
+          <label class="field-label">Sentence Length</label>
+          <select data-path="voice.language.sentenceLength">
+            <option value="short">Short</option>
+            <option value="medium" selected>Medium</option>
+            <option value="long">Long</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Jargon Level</label>
+          <select data-path="voice.language.jargonLevel">
+            <option value="none">None</option>
+            <option value="light" selected>Light</option>
+            <option value="moderate">Moderate</option>
+            <option value="heavy">Heavy</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Emoji Usage</label>
+          <select data-path="voice.language.emojiUsage">
+            <option value="never">Never</option>
+            <option value="sparingly" selected>Sparingly</option>
+            <option value="frequently">Frequently</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Structure</label>
+          <select data-path="voice.language.structure">
+            <option value="bullets">Bullets</option>
+            <option value="mixed" selected>Mixed</option>
+            <option value="prose">Prose</option>
+          </select>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="uses-analogies" data-path="voice.language.usesAnalogies">
+          <label for="uses-analogies">Uses Analogies</label>
+        </div>
+        <div class="field">
+          <label class="field-label">Addressing</label>
+          <select data-path="voice.language.addressing">
+            <option value="first-person" selected>First Person</option>
+            <option value="second-person">Second Person</option>
+            <option value="third-person">Third Person</option>
+          </select>
+        </div>
+      </div>
+    </details>
+
+    <!-- CHANNEL OVERRIDES -->
+    <details>
+      <summary>Channel Overrides</summary>
+      <div class="form-section">
+        <div id="channel-overrides"></div>
+        <button class="add-btn" data-add="channel">+ Add Channel</button>
+      </div>
+    </details>
+
+    <!-- BEHAVIOR RULES -->
+    <details>
+      <summary>Behavior Rules</summary>
+      <div class="form-section">
+        <div id="rules-list"></div>
+        <button class="add-btn" data-add="rule">+ Add Rule</button>
+      </div>
+    </details>
+
+    <!-- BOUNDARIES -->
+    <details>
+      <summary>Boundaries</summary>
+      <div class="form-section">
+        <div id="boundaries-list"></div>
+        <button class="add-btn" data-add="boundary">+ Add Boundary</button>
+      </div>
+    </details>
+
+    <!-- TOOLS -->
+    <details>
+      <summary>Tools</summary>
+      <div class="form-section">
+        <div id="tools-list"></div>
+        <button class="add-btn" data-add="tool">+ Add Tool</button>
+      </div>
+    </details>
+
+    <!-- SKILLS -->
+    <details>
+      <summary>Skills</summary>
+      <div class="form-section">
+        <div id="skills-list"></div>
+        <button class="add-btn" data-add="skill">+ Add Skill</button>
+      </div>
+    </details>
+
+    <!-- COGNITION -->
+    <details>
+      <summary>Cognition</summary>
+      <div class="form-section">
+        <div class="field">
+          <label class="field-label">Reasoning Style</label>
+          <select data-path="cognition.reasoningStyle.primary">
+            <option value="analytical" selected>Analytical</option>
+            <option value="intuitive">Intuitive</option>
+            <option value="creative">Creative</option>
+            <option value="systematic">Systematic</option>
+            <option value="lateral">Lateral</option>
+          </select>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="show-reasoning" data-path="cognition.reasoningStyle.showReasoning">
+          <label for="show-reasoning">Show Reasoning</label>
+        </div>
+        <div class="field">
+          <label class="field-label">Analysis Depth</label>
+          <select data-path="cognition.reasoningStyle.analysisDepth">
+            <option value="surface">Surface</option>
+            <option value="moderate" selected>Moderate</option>
+            <option value="deep">Deep</option>
+            <option value="exhaustive">Exhaustive</option>
+          </select>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="multi-perspective" data-path="cognition.reasoningStyle.multiPerspective">
+          <label for="multi-perspective">Multi-Perspective</label>
+        </div>
+        <div class="field">
+          <label class="field-label">Autonomy</label>
+          <select data-path="cognition.decisionMaking.autonomy">
+            <option value="fully-autonomous">Fully Autonomous</option>
+            <option value="ask-for-major" selected>Ask for Major</option>
+            <option value="always-ask">Always Ask</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Low Confidence Action</label>
+          <select data-path="cognition.uncertainty.lowConfidenceAction">
+            <option value="ask" selected>Ask</option>
+            <option value="flag">Flag</option>
+            <option value="proceed-with-caveat">Proceed with Caveat</option>
+            <option value="refuse">Refuse</option>
+          </select>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">Conf. Floor</span>
+          <input type="range" min="0" max="1" step="0.05" value="0.4" data-path="cognition.uncertainty.confidenceFloor">
+          <span class="slider-val">0.40</span>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="communicate-uncertainty" data-path="cognition.uncertainty.communicateUncertainty" checked>
+          <label for="communicate-uncertainty">Communicate Uncertainty</label>
+        </div>
+      </div>
+    </details>
+
+  </div>
+
+  <!-- OUTPUT PANEL -->
+  <div class="output-panel">
+    <div class="output-tabs">
+      <button class="output-tab active" data-tab="yaml">YAML</button>
+      <button class="output-tab" data-tab="typescript">TypeScript</button>
+      <button class="output-tab" data-tab="python">Python</button>
+      <button class="output-tab" data-tab="prompt">Prompt</button>
+    </div>
+    <div class="output-body">
+      <pre id="output-content"></pre>
+    </div>
+    <div class="output-footer valid" id="output-status">Valid</div>
+  </div>
+</div>
+
+<script>
+// ============================================================================
+// STATE
+// ============================================================================
+
+const PERSONALITY_DIMS = ['formality','warmth','humor','assertiveness','verbosity','confidence','concreteness','urgency'];
+
+const PERSONALITY_DIRECTIVES = {
+  formality: [
+    [0.2, "Be very casual. Use slang and contractions freely."],
+    [0.4, "Be conversational and approachable."],
+    [0.6, "Balanced tone - professional but approachable."],
+    [0.8, "Be professional and polished."],
+    [1.01, "Highly formal, precise tone."],
+  ],
+  warmth: [
+    [0.2, "Direct and clinical. Facts only."],
+    [0.4, "Polite but task-focused."],
+    [0.6, "Friendly. Basic courtesy."],
+    [0.8, "Warm and empathetic."],
+    [1.01, "Lead with empathy. Mirror emotional state."],
+  ],
+  humor: [
+    [0.2, "Serious and focused. No jokes."],
+    [0.4, "Mostly serious. Light tone OK."],
+    [0.6, "A touch of wit when it serves clarity."],
+    [0.8, "Use humor and wit naturally."],
+    [1.01, "Playful and witty throughout."],
+  ],
+  assertiveness: [
+    [0.2, "Passive and deferential."],
+    [0.4, "Reactive. Offer options, let user drive."],
+    [0.6, "Balance initiative with deference."],
+    [0.8, "Proactive. Clear recommendations."],
+    [1.01, "Highly assertive. Take initiative."],
+  ],
+  verbosity: [
+    [0.2, "Extremely terse. Single sentences."],
+    [0.4, "Brief and focused."],
+    [0.6, "Moderate detail."],
+    [0.8, "Detailed, thorough explanations."],
+    [1.01, "Comprehensive. Rich context and examples."],
+  ],
+  confidence: [
+    [0.2, "Hedge heavily. Use qualifiers."],
+    [0.4, "Show appropriate uncertainty."],
+    [0.6, "Moderately confident."],
+    [0.8, "Decisive. No excessive hedging."],
+    [1.01, "Maximally decisive. Project authority."],
+  ],
+  concreteness: [
+    [0.2, "Abstract and conceptual."],
+    [0.4, "Lean toward concepts and theory."],
+    [0.6, "Mix abstract with concrete examples."],
+    [0.8, "Concrete examples and specific numbers."],
+    [1.01, "Hyper-concrete. Every point gets an example."],
+  ],
+  urgency: [
+    [0.2, "Thorough. Prioritize completeness."],
+    [0.4, "Measured and deliberate."],
+    [0.6, "Balance thoroughness with efficiency."],
+    [0.8, "Move quickly. Bias toward action."],
+    [1.01, "Maximum urgency. Get to the answer."],
+  ],
+};
+
+const PRESETS = {
+  professional: { formality: 0.7, warmth: 0.5, humor: 0.1, assertiveness: 0.6, verbosity: 0.5, confidence: 0.7, concreteness: 0.7, urgency: 0.4 },
+  friendly: { formality: 0.3, warmth: 0.8, humor: 0.4, assertiveness: 0.4, verbosity: 0.6, confidence: 0.6, concreteness: 0.6, urgency: 0.3 },
+  expert: { formality: 0.5, warmth: 0.3, humor: 0.1, assertiveness: 0.8, verbosity: 0.4, confidence: 0.9, concreteness: 0.9, urgency: 0.5 },
+  creative: { formality: 0.2, warmth: 0.7, humor: 0.7, assertiveness: 0.6, verbosity: 0.7, confidence: 0.6, concreteness: 0.4, urgency: 0.3 },
+  executor: { formality: 0.4, warmth: 0.2, humor: 0.0, assertiveness: 0.9, verbosity: 0.1, confidence: 0.9, concreteness: 1.0, urgency: 0.8 },
+};
+
+let state = {
+  specVersion: "1.0",
+  id: "",
+  version: "1.0.0",
+  meta: { name: "", description: "" },
+  identity: { name: "", role: "", purpose: { primary: "", secondary: [] }, expertise: [] },
+  voice: {
+    personality: { formality: 0.5, warmth: 0.5, humor: 0.3, assertiveness: 0.5, verbosity: 0.5, confidence: 0.6, concreteness: 0.6, urgency: 0.4 },
+    language: { locale: "en", sentenceLength: "medium", jargonLevel: "light", emojiUsage: "sparingly", structure: "mixed", usesAnalogies: false, addressing: "first-person" },
+    channelOverrides: {}
+  },
+  cognition: {
+    reasoningStyle: { primary: "analytical", showReasoning: false, analysisDepth: "moderate", multiPerspective: false },
+    decisionMaking: { autonomy: "ask-for-major" },
+    uncertainty: { lowConfidenceAction: "ask", confidenceFloor: 0.4, communicateUncertainty: true }
+  },
+  behavior: { rules: [], boundaries: [] },
+  capabilities: { tools: [], skills: [] }
+};
+
+let activeTab = "yaml";
+let outputChannel = "";
+let lastOutput = { yaml: "", prompt: "", codeTs: "", codePy: "" };
+let renderTimer = null;
+
+// ============================================================================
+// STATE HELPERS
+// ============================================================================
+
+function setPath(obj, path, value) {
+  const parts = path.split(".");
+  let cur = obj;
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (!(parts[i] in cur)) cur[parts[i]] = {};
+    cur = cur[parts[i]];
+  }
+  cur[parts[parts.length - 1]] = value;
+}
+
+function getPath(obj, path) {
+  const parts = path.split(".");
+  let cur = obj;
+  for (const p of parts) {
+    if (cur == null) return undefined;
+    cur = cur[p];
+  }
+  return cur;
+}
+
+function getDirective(dim, val) {
+  const levels = PERSONALITY_DIRECTIVES[dim];
+  if (!levels) return "";
+  for (const [max, text] of levels) {
+    if (val < max || max > 1) return text;
+  }
+  return "";
+}
+
+// ============================================================================
+// RENDER & API
+// ============================================================================
+
+function scheduleRender() {
+  if (renderTimer) clearTimeout(renderTimer);
+  renderTimer = setTimeout(doRender, 300);
+}
+
+function buildSpec() {
+  const spec = JSON.parse(JSON.stringify(state));
+  // Clean up empty fields
+  if (!spec.id) delete spec.id;
+  if (!spec.meta.name && !spec.meta.description) delete spec.meta;
+  if (!spec.identity.name && !spec.identity.role && !spec.identity.purpose.primary) delete spec.identity;
+  if (spec.identity) {
+    if (!spec.identity.purpose.secondary?.length) delete spec.identity.purpose.secondary;
+    if (!spec.identity.expertise?.length) delete spec.identity.expertise;
+  }
+  if (!Object.keys(spec.voice.channelOverrides).length) delete spec.voice.channelOverrides;
+  if (!spec.behavior.rules.length) delete spec.behavior.rules;
+  if (!spec.behavior.boundaries.length) delete spec.behavior.boundaries;
+  if (!spec.behavior.rules && !spec.behavior.boundaries) delete spec.behavior;
+  if (!spec.capabilities.tools.length && !spec.capabilities.skills.length) delete spec.capabilities;
+  else {
+    if (!spec.capabilities.tools.length) delete spec.capabilities.tools;
+    if (!spec.capabilities.skills.length) delete spec.capabilities.skills;
+  }
+  return spec;
+}
+
+async function doRender() {
+  const spec = buildSpec();
+  try {
+    const res = await fetch("/api/build", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ spec, channel: outputChannel || undefined })
+    });
+    const data = await res.json();
+    lastOutput = data;
+    updateOutputDisplay();
+    updateValidationStatus(data);
+  } catch (e) {
+    document.getElementById("output-content").textContent = "// Error connecting to server";
+  }
+}
+
+function updateOutputDisplay() {
+  const el = document.getElementById("output-content");
+  switch (activeTab) {
+    case "yaml": el.textContent = lastOutput.yaml || ""; break;
+    case "typescript": el.textContent = lastOutput.codeTs || ""; break;
+    case "python": el.textContent = lastOutput.codePy || ""; break;
+    case "prompt": el.textContent = lastOutput.prompt || ""; break;
+  }
+}
+
+function updateValidationStatus(data) {
+  const el = document.getElementById("output-status");
+  if (data.valid) {
+    el.textContent = "Valid";
+    el.className = "output-footer valid";
+  } else {
+    const count = data.errors?.length || 0;
+    el.textContent = `${count} error${count !== 1 ? 's' : ''}: ${data.errors?.[0]?.message || ''}`;
+    el.className = "output-footer invalid";
+  }
+}
+
+// ============================================================================
+// PERSONALITY SLIDERS
+// ============================================================================
+
+function renderPersonalitySliders() {
+  const container = document.getElementById("personality-sliders");
+  container.innerHTML = "";
+  for (const dim of PERSONALITY_DIMS) {
+    const val = state.voice.personality[dim] || 0.5;
+    const row = document.createElement("div");
+    row.innerHTML = `
+      <div class="slider-row">
+        <span class="slider-label">${dim}</span>
+        <input type="range" min="0" max="1" step="0.05" value="${val}" data-dim="${dim}">
+        <span class="slider-val">${val.toFixed(2)}</span>
+      </div>
+      <div class="slider-directive">${getDirective(dim, val)}</div>
+    `;
+    container.appendChild(row);
+
+    const input = row.querySelector('input[type="range"]');
+    const valEl = row.querySelector('.slider-val');
+    const dirEl = row.querySelector('.slider-directive');
+    input.addEventListener("input", () => {
+      const v = parseFloat(input.value);
+      state.voice.personality[dim] = v;
+      valEl.textContent = v.toFixed(2);
+      dirEl.textContent = getDirective(dim, v);
+      scheduleRender();
+    });
+  }
+}
+
+// ============================================================================
+// DYNAMIC LISTS
+// ============================================================================
+
+function renderSecondaryPurposes() {
+  const container = document.getElementById("secondary-purposes");
+  container.innerHTML = "";
+  (state.identity.purpose.secondary || []).forEach((val, i) => {
+    const item = document.createElement("div");
+    item.className = "repeatable-item";
+    item.innerHTML = `
+      <input type="text" value="${escHtml(val)}" style="width:calc(100% - 60px)">
+      <button class="remove-btn" data-idx="${i}">X</button>
+    `;
+    item.querySelector("input").addEventListener("input", (e) => {
+      state.identity.purpose.secondary[i] = e.target.value;
+      scheduleRender();
+    });
+    item.querySelector(".remove-btn").addEventListener("click", () => {
+      state.identity.purpose.secondary.splice(i, 1);
+      renderSecondaryPurposes();
+      scheduleRender();
+    });
+    container.appendChild(item);
+  });
+}
+
+function renderExpertise() {
+  const container = document.getElementById("expertise-list");
+  container.innerHTML = "";
+  (state.identity.expertise || []).forEach((exp, i) => {
+    const item = document.createElement("div");
+    item.className = "repeatable-item";
+    item.innerHTML = `
+      <button class="remove-btn" data-idx="${i}">X</button>
+      <div class="field" style="margin-bottom:8px">
+        <label class="field-label">Domain</label>
+        <input type="text" value="${escHtml(exp.domain || '')}">
+      </div>
+      <div class="slider-row">
+        <span class="slider-label">Proficiency</span>
+        <input type="range" min="0" max="1" step="0.05" value="${exp.proficiency || 0.5}">
+        <span class="slider-val">${(exp.proficiency || 0.5).toFixed(2)}</span>
+      </div>
+    `;
+    item.querySelector('input[type="text"]').addEventListener("input", (e) => {
+      state.identity.expertise[i].domain = e.target.value;
+      scheduleRender();
+    });
+    const slider = item.querySelector('input[type="range"]');
+    const sliderVal = item.querySelector('.slider-val');
+    slider.addEventListener("input", () => {
+      state.identity.expertise[i].proficiency = parseFloat(slider.value);
+      sliderVal.textContent = parseFloat(slider.value).toFixed(2);
+      scheduleRender();
+    });
+    item.querySelector(".remove-btn").addEventListener("click", () => {
+      state.identity.expertise.splice(i, 1);
+      renderExpertise();
+      scheduleRender();
+    });
+    container.appendChild(item);
+  });
+}
+
+function renderChannelOverrides() {
+  const container = document.getElementById("channel-overrides");
+  container.innerHTML = "";
+  for (const [name, overrides] of Object.entries(state.voice.channelOverrides)) {
+    const item = document.createElement("div");
+    item.className = "repeatable-item";
+    let html = `<button class="remove-btn" data-channel="${escHtml(name)}">X</button>
+      <div class="field" style="margin-bottom:10px">
+        <label class="field-label">Channel Name</label>
+        <input type="text" value="${escHtml(name)}" data-old-name="${escHtml(name)}" class="channel-name-input">
+      </div>`;
+    for (const dim of PERSONALITY_DIMS) {
+      const val = overrides[dim] !== undefined ? overrides[dim] : "";
+      html += `<div class="slider-row">
+        <span class="slider-label">${dim}</span>
+        <input type="range" min="0" max="1" step="0.05" value="${val || 0.5}" data-dim="${dim}" data-channel="${escHtml(name)}">
+        <span class="slider-val">${val !== "" ? parseFloat(val).toFixed(2) : "-"}</span>
+      </div>`;
+    }
+    item.innerHTML = html;
+
+    item.querySelector(".channel-name-input").addEventListener("change", (e) => {
+      const oldName = e.target.dataset.oldName;
+      const newName = e.target.value;
+      if (newName && newName !== oldName) {
+        state.voice.channelOverrides[newName] = state.voice.channelOverrides[oldName];
+        delete state.voice.channelOverrides[oldName];
+        renderChannelOverrides();
+        scheduleRender();
+      }
+    });
+
+    item.querySelectorAll('input[type="range"]').forEach(slider => {
+      slider.addEventListener("input", () => {
+        const ch = slider.dataset.channel;
+        const dim = slider.dataset.dim;
+        state.voice.channelOverrides[ch][dim] = parseFloat(slider.value);
+        slider.nextElementSibling.textContent = parseFloat(slider.value).toFixed(2);
+        scheduleRender();
+      });
+    });
+
+    item.querySelector(".remove-btn").addEventListener("click", () => {
+      delete state.voice.channelOverrides[name];
+      renderChannelOverrides();
+      scheduleRender();
+    });
+    container.appendChild(item);
+  }
+}
+
+function renderRules() {
+  const container = document.getElementById("rules-list");
+  container.innerHTML = "";
+  state.behavior.rules.forEach((rule, i) => {
+    const item = document.createElement("div");
+    item.className = "repeatable-item";
+    item.innerHTML = `
+      <button class="remove-btn" data-idx="${i}">X</button>
+      <div class="field" style="margin-bottom:8px">
+        <label class="field-label">ID</label>
+        <input type="text" value="${escHtml(rule.id || '')}" data-field="id">
+      </div>
+      <div class="field" style="margin-bottom:8px">
+        <label class="field-label">Priority</label>
+        <input type="number" value="${rule.priority || 0}" data-field="priority" style="width:80px">
+      </div>
+      <div class="field" style="margin-bottom:8px">
+        <label class="field-label">Condition Type</label>
+        <select data-field="condition.type">
+          <option value="always" ${rule.condition?.type === 'always' ? 'selected' : ''}>Always</option>
+          <option value="when-topic" ${rule.condition?.type === 'when-topic' ? 'selected' : ''}>When Topic</option>
+          <option value="when-sentiment" ${rule.condition?.type === 'when-sentiment' ? 'selected' : ''}>When Sentiment</option>
+          <option value="when-confidence-below" ${rule.condition?.type === 'when-confidence-below' ? 'selected' : ''}>When Confidence Below</option>
+        </select>
+      </div>
+      ${rule.condition?.type === 'when-topic' ? `<div class="field" style="margin-bottom:8px">
+        <label class="field-label">Topics (comma-separated)</label>
+        <input type="text" value="${escHtml((rule.condition.topics || []).join(', '))}" data-field="condition.topics">
+      </div>` : ''}
+      ${rule.condition?.type === 'when-sentiment' ? `<div class="field" style="margin-bottom:8px">
+        <label class="field-label">Sentiment</label>
+        <select data-field="condition.sentiment">
+          <option value="frustrated" ${rule.condition.sentiment === 'frustrated' ? 'selected' : ''}>Frustrated</option>
+          <option value="confused" ${rule.condition.sentiment === 'confused' ? 'selected' : ''}>Confused</option>
+          <option value="angry" ${rule.condition.sentiment === 'angry' ? 'selected' : ''}>Angry</option>
+          <option value="happy" ${rule.condition.sentiment === 'happy' ? 'selected' : ''}>Happy</option>
+        </select>
+      </div>` : ''}
+      ${rule.condition?.type === 'when-confidence-below' ? `<div class="slider-row" style="margin-bottom:8px">
+        <span class="slider-label">Threshold</span>
+        <input type="range" min="0" max="1" step="0.05" value="${rule.condition.threshold || 0.3}" data-field="condition.threshold">
+        <span class="slider-val">${(rule.condition.threshold || 0.3).toFixed(2)}</span>
+      </div>` : ''}
+      <div class="field" style="margin-bottom:8px">
+        <label class="field-label">Action Type</label>
+        <select data-field="action.type">
+          <option value="respond-with-style" ${rule.action?.type === 'respond-with-style' ? 'selected' : ''}>Respond With Style</option>
+          <option value="escalate" ${rule.action?.type === 'escalate' ? 'selected' : ''}>Escalate</option>
+          <option value="require-confirmation" ${rule.action?.type === 'require-confirmation' ? 'selected' : ''}>Require Confirmation</option>
+          <option value="use-tool" ${rule.action?.type === 'use-tool' ? 'selected' : ''}>Use Tool</option>
+          <option value="refuse" ${rule.action?.type === 'refuse' ? 'selected' : ''}>Refuse</option>
+        </select>
+      </div>
+      ${rule.action?.type === 'escalate' ? `
+      <div class="field" style="margin-bottom:8px">
+        <label class="field-label">Target</label>
+        <input type="text" value="${escHtml(rule.action.target || '')}" data-field="action.target">
+      </div>
+      <div class="field" style="margin-bottom:8px">
+        <label class="field-label">Reason</label>
+        <input type="text" value="${escHtml(rule.action.reason || '')}" data-field="action.reason">
+      </div>` : ''}
+      ${rule.action?.type === 'refuse' ? `<div class="field" style="margin-bottom:8px">
+        <label class="field-label">Message</label>
+        <input type="text" value="${escHtml(rule.action.message || '')}" data-field="action.message">
+      </div>` : ''}
+      ${rule.action?.type === 'use-tool' ? `<div class="field" style="margin-bottom:8px">
+        <label class="field-label">Tool</label>
+        <input type="text" value="${escHtml(rule.action.tool || '')}" data-field="action.tool">
+      </div>` : ''}
+    `;
+
+    // Event handlers
+    item.querySelectorAll("input[type='text'], input[type='number'], select").forEach(el => {
+      const field = el.dataset.field;
+      if (!field) return;
+      el.addEventListener("change", () => {
+        if (field === "id") { state.behavior.rules[i].id = el.value; }
+        else if (field === "priority") { state.behavior.rules[i].priority = parseInt(el.value) || 0; }
+        else if (field === "condition.type") {
+          state.behavior.rules[i].condition = { type: el.value };
+          renderRules();
+        }
+        else if (field === "condition.topics") { state.behavior.rules[i].condition.topics = el.value.split(",").map(s => s.trim()).filter(Boolean); }
+        else if (field === "condition.sentiment") { state.behavior.rules[i].condition.sentiment = el.value; }
+        else if (field === "action.type") {
+          state.behavior.rules[i].action = { type: el.value };
+          renderRules();
+        }
+        else if (field === "action.target") { state.behavior.rules[i].action.target = el.value; }
+        else if (field === "action.reason") { state.behavior.rules[i].action.reason = el.value; }
+        else if (field === "action.message") { state.behavior.rules[i].action.message = el.value; }
+        else if (field === "action.tool") { state.behavior.rules[i].action.tool = el.value; }
+        scheduleRender();
+      });
+    });
+
+    item.querySelectorAll('input[type="range"]').forEach(slider => {
+      slider.addEventListener("input", () => {
+        const field = slider.dataset.field;
+        if (field === "condition.threshold") {
+          state.behavior.rules[i].condition.threshold = parseFloat(slider.value);
+          slider.nextElementSibling.textContent = parseFloat(slider.value).toFixed(2);
+        }
+        scheduleRender();
+      });
+    });
+
+    item.querySelector(".remove-btn").addEventListener("click", () => {
+      state.behavior.rules.splice(i, 1);
+      renderRules();
+      scheduleRender();
+    });
+    container.appendChild(item);
+  });
+}
+
+function renderBoundaries() {
+  const container = document.getElementById("boundaries-list");
+  container.innerHTML = "";
+  state.behavior.boundaries.forEach((b, i) => {
+    const item = document.createElement("div");
+    item.className = "repeatable-item";
+    item.innerHTML = `
+      <button class="remove-btn" data-idx="${i}">X</button>
+      <div class="field" style="margin-bottom:8px">
+        <label class="field-label">Description</label>
+        <textarea data-field="description">${escHtml(b.description || '')}</textarea>
+      </div>
+      <div class="field" style="margin-bottom:8px">
+        <label class="field-label">Category</label>
+        <select data-field="category">
+          <option value="content" ${b.category === 'content' ? 'selected' : ''}>Content</option>
+          <option value="action" ${b.category === 'action' ? 'selected' : ''}>Action</option>
+          <option value="data" ${b.category === 'data' ? 'selected' : ''}>Data</option>
+          <option value="scope" ${b.category === 'scope' ? 'selected' : ''}>Scope</option>
+          <option value="safety" ${b.category === 'safety' ? 'selected' : ''}>Safety</option>
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:8px">
+        <label class="field-label">Enforcement</label>
+        <select data-field="enforcement">
+          <option value="hard" ${b.enforcement === 'hard' ? 'selected' : ''}>Hard</option>
+          <option value="soft" ${b.enforcement === 'soft' ? 'selected' : ''}>Soft</option>
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:8px">
+        <label class="field-label">On Violation</label>
+        <select data-field="onViolation">
+          <option value="refuse" ${b.onViolation === 'refuse' ? 'selected' : ''}>Refuse</option>
+          <option value="warn" ${b.onViolation === 'warn' ? 'selected' : ''}>Warn</option>
+          <option value="redirect" ${b.onViolation === 'redirect' ? 'selected' : ''}>Redirect</option>
+          <option value="escalate" ${b.onViolation === 'escalate' ? 'selected' : ''}>Escalate</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label">Message (optional)</label>
+        <input type="text" value="${escHtml(b.message || '')}" data-field="message">
+      </div>
+    `;
+    item.querySelectorAll("textarea, select, input[type='text']").forEach(el => {
+      el.addEventListener("change", () => {
+        state.behavior.boundaries[i][el.dataset.field] = el.value;
+        scheduleRender();
+      });
+    });
+    item.querySelector(".remove-btn").addEventListener("click", () => {
+      state.behavior.boundaries.splice(i, 1);
+      renderBoundaries();
+      scheduleRender();
+    });
+    container.appendChild(item);
+  });
+}
+
+function renderTools() {
+  const container = document.getElementById("tools-list");
+  container.innerHTML = "";
+  (state.capabilities.tools || []).forEach((t, i) => {
+    const item = document.createElement("div");
+    item.className = "repeatable-item";
+    item.innerHTML = `
+      <button class="remove-btn" data-idx="${i}">X</button>
+      <div class="field" style="margin-bottom:8px">
+        <label class="field-label">ID</label>
+        <input type="text" value="${escHtml(t.id || '')}" data-field="id">
+      </div>
+      <div class="field" style="margin-bottom:8px">
+        <label class="field-label">Usage</label>
+        <input type="text" value="${escHtml(t.usage || '')}" data-field="usage">
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" ${t.requiresConfirmation ? 'checked' : ''} data-field="requiresConfirmation">
+        <label>Requires Confirmation</label>
+      </div>
+    `;
+    item.querySelectorAll("input[type='text']").forEach(el => {
+      el.addEventListener("change", () => {
+        state.capabilities.tools[i][el.dataset.field] = el.value;
+        scheduleRender();
+      });
+    });
+    item.querySelector("input[type='checkbox']").addEventListener("change", (e) => {
+      state.capabilities.tools[i].requiresConfirmation = e.target.checked;
+      scheduleRender();
+    });
+    item.querySelector(".remove-btn").addEventListener("click", () => {
+      state.capabilities.tools.splice(i, 1);
+      renderTools();
+      scheduleRender();
+    });
+    container.appendChild(item);
+  });
+}
+
+function renderSkills() {
+  const container = document.getElementById("skills-list");
+  container.innerHTML = "";
+  (state.capabilities.skills || []).forEach((s, i) => {
+    const item = document.createElement("div");
+    item.className = "repeatable-item";
+    item.innerHTML = `
+      <button class="remove-btn" data-idx="${i}">X</button>
+      <div class="field" style="margin-bottom:8px">
+        <label class="field-label">Name</label>
+        <input type="text" value="${escHtml(s.name || '')}" data-field="name">
+      </div>
+      <div class="field" style="margin-bottom:8px">
+        <label class="field-label">Description</label>
+        <input type="text" value="${escHtml(s.description || '')}" data-field="description">
+      </div>
+      <div class="field" style="margin-bottom:8px">
+        <label class="field-label">Required Tools (comma-separated)</label>
+        <input type="text" value="${escHtml((s.requiredTools || []).join(', '))}" data-field="requiredTools">
+      </div>
+      <div class="field" style="margin-bottom:8px">
+        <label class="field-label">Steps (comma-separated)</label>
+        <input type="text" value="${escHtml((s.steps || []).join(', '))}" data-field="steps">
+      </div>
+      <div class="field">
+        <label class="field-label">Success Criteria (comma-separated)</label>
+        <input type="text" value="${escHtml((s.successCriteria || []).join(', '))}" data-field="successCriteria">
+      </div>
+    `;
+    item.querySelectorAll("input[type='text']").forEach(el => {
+      el.addEventListener("change", () => {
+        const field = el.dataset.field;
+        if (field === "requiredTools" || field === "steps" || field === "successCriteria") {
+          state.capabilities.skills[i][field] = el.value.split(",").map(s => s.trim()).filter(Boolean);
+        } else {
+          state.capabilities.skills[i][field] = el.value;
+        }
+        scheduleRender();
+      });
+    });
+    item.querySelector(".remove-btn").addEventListener("click", () => {
+      state.capabilities.skills.splice(i, 1);
+      renderSkills();
+      scheduleRender();
+    });
+    container.appendChild(item);
+  });
+}
+
+// ============================================================================
+// UTILS
+// ============================================================================
+
+function escHtml(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+// ============================================================================
+// EVENT BINDING
+// ============================================================================
+
+// Simple data-path inputs
+document.querySelectorAll("[data-path]").forEach(el => {
+  const path = el.dataset.path;
+  const initial = getPath(state, path);
+  if (el.type === "checkbox") {
+    el.checked = !!initial;
+    el.addEventListener("change", () => {
+      setPath(state, path, el.checked);
+      scheduleRender();
+    });
+  } else if (el.tagName === "SELECT") {
+    if (initial) el.value = initial;
+    el.addEventListener("change", () => {
+      setPath(state, path, el.value);
+      scheduleRender();
+    });
+  } else if (el.type === "range") {
+    if (initial !== undefined) el.value = initial;
+    el.addEventListener("input", () => {
+      const v = parseFloat(el.value);
+      setPath(state, path, v);
+      el.nextElementSibling.textContent = v.toFixed(2);
+      scheduleRender();
+    });
+  } else {
+    if (initial) el.value = initial;
+    el.addEventListener("input", () => {
+      setPath(state, path, el.value);
+      scheduleRender();
+    });
+  }
+});
+
+// Presets
+document.querySelectorAll(".preset-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const preset = PRESETS[btn.dataset.preset];
+    if (preset) {
+      state.voice.personality = { ...preset };
+      renderPersonalitySliders();
+      scheduleRender();
+    }
+  });
+});
+
+// Add buttons
+document.querySelectorAll("[data-add]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    switch (btn.dataset.add) {
+      case "secondary-purpose":
+        if (!state.identity.purpose.secondary) state.identity.purpose.secondary = [];
+        state.identity.purpose.secondary.push("");
+        renderSecondaryPurposes();
+        break;
+      case "expertise":
+        if (!state.identity.expertise) state.identity.expertise = [];
+        state.identity.expertise.push({ domain: "", proficiency: 0.5 });
+        renderExpertise();
+        break;
+      case "channel":
+        const name = prompt("Channel name (e.g., slack, email):");
+        if (name) {
+          state.voice.channelOverrides[name] = {};
+          renderChannelOverrides();
+        }
+        break;
+      case "rule":
+        state.behavior.rules.push({ id: "", priority: 0, condition: { type: "always" }, action: { type: "respond-with-style" } });
+        renderRules();
+        break;
+      case "boundary":
+        state.behavior.boundaries.push({ description: "", category: "content", enforcement: "hard", onViolation: "refuse" });
+        renderBoundaries();
+        break;
+      case "tool":
+        if (!state.capabilities.tools) state.capabilities.tools = [];
+        state.capabilities.tools.push({ id: "", usage: "", requiresConfirmation: false });
+        renderTools();
+        break;
+      case "skill":
+        if (!state.capabilities.skills) state.capabilities.skills = [];
+        state.capabilities.skills.push({ name: "", description: "", requiredTools: [], steps: [], successCriteria: [] });
+        renderSkills();
+        break;
+    }
+    scheduleRender();
+  });
+});
+
+// Output tabs
+document.querySelectorAll(".output-tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".output-tab").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    activeTab = btn.dataset.tab;
+    updateOutputDisplay();
+  });
+});
+
+// Download
+document.getElementById("btn-download").addEventListener("click", () => {
+  let content, filename;
+  switch (activeTab) {
+    case "yaml": content = lastOutput.yaml; filename = `${state.id || 'agent'}.agent.yaml`; break;
+    case "typescript": content = lastOutput.codeTs; filename = "agent.ts"; break;
+    case "python": content = lastOutput.codePy; filename = "agent.py"; break;
+    case "prompt": content = lastOutput.prompt; filename = "prompt.txt"; break;
+    default: content = lastOutput.yaml; filename = "agent.yaml";
+  }
+  const blob = new Blob([content], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+// Copy
+document.getElementById("btn-copy").addEventListener("click", () => {
+  let content;
+  switch (activeTab) {
+    case "yaml": content = lastOutput.yaml; break;
+    case "typescript": content = lastOutput.codeTs; break;
+    case "python": content = lastOutput.codePy; break;
+    case "prompt": content = lastOutput.prompt; break;
+    default: content = lastOutput.yaml;
+  }
+  navigator.clipboard.writeText(content).then(() => {
+    const btn = document.getElementById("btn-copy");
+    btn.textContent = "Copied!";
+    setTimeout(() => { btn.textContent = "Copy"; }, 1500);
+  });
+});
+
+// ============================================================================
+// INIT
+// ============================================================================
+
+renderPersonalitySliders();
+renderSecondaryPurposes();
+renderExpertise();
+renderChannelOverrides();
+renderRules();
+renderBoundaries();
+renderTools();
+renderSkills();
+doRender();
+</script>
+</body>
+</html>

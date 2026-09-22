@@ -1,0 +1,58 @@
+{
+  "name": "@reallyartificial/grain",
+  "version": "0.3.2",
+  "description": "Grain — a structured data format for describing AI agents.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "bin": {
+    "grain": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.test.*",
+    "agentspec.schema.json"
+  ],
+  "scripts": {
+    "prebuild": "cp ../../spec/agentspec.schema.json ./agentspec.schema.json 2>/dev/null || true",
+    "build": "tsc && cp src/builder.html dist/builder.html",
+    "test": "vitest run --dir src",
+    "prepublishOnly": "npm run build && npm test",
+    "validate": "tsx src/load.ts"
+  },
+  "keywords": [
+    "agent",
+    "ai-agent",
+    "llm",
+    "persona",
+    "grain",
+    "structured-data"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/reallyartificial/grain",
+    "directory": "sdk/typescript"
+  },
+  "homepage": "https://github.com/reallyartificial/grain#readme",
+  "bugs": {
+    "url": "https://github.com/reallyartificial/grain/issues"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "ajv": "^8.17.0",
+    "ajv-formats": "^3.0.1",
+    "yaml": "^2.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0",
+    "vitest": "^4.1.5"
+  }
+}

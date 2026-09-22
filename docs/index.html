@@ -1,0 +1,1680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Grain — A Data Structure for AI Agents</title>
+  <meta name="description" content="A portable data structure for AI agents. Define personality, rules, and boundaries as structured data. Run on any framework.">
+  <meta property="og:title" content="Grain — A Data Structure for AI Agents">
+  <meta property="og:description" content="Define agent personality, rules, and boundaries as structured data. 8-dimension personality vectors, channel-aware prompts, framework portable.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://grain.reallyartificial.org">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Grain — A Data Structure for AI Agents">
+  <meta name="twitter:description" content="Define agent personality, rules, and boundaries as structured data. Run on any framework.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌾</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f5f0e8;
+      --surface: #fff;
+      --surface-alt: #ebe5d9;
+      --ink: #1a1a1a;
+      --ink-dim: #6b6560;
+      --ink-faint: #a09890;
+      --red: #c0392b;
+      --green: #1a7a4c;
+      --blue: #1a4a7a;
+      --border: #1a1a1a;
+      --border-light: #ccc5b8;
+      --mono: "IBM Plex Mono", "Menlo", monospace;
+      --sans: "Space Grotesk", -apple-system, system-ui, sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    ::selection { background: #1a1a1a; color: #f5f0e8; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── NAV ── */
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 32px;
+      border-bottom: 2px solid var(--border);
+    }
+    .nav-logo {
+      font-family: var(--mono);
+      font-weight: 600;
+      font-size: 1rem;
+      letter-spacing: -0.02em;
+    }
+    .nav-links {
+      display: flex;
+      gap: 24px;
+    }
+    .nav-links a {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--ink-dim);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.15s;
+    }
+    .nav-links a:hover { border-bottom-color: var(--ink); color: var(--ink); }
+
+    /* ── HERO ── */
+    .hero {
+      padding: 80px 32px 60px;
+      max-width: 900px;
+    }
+    .hero-label {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--ink-dim);
+      margin-bottom: 16px;
+    }
+    .hero h1 {
+      font-size: clamp(2.8rem, 7vw, 5rem);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1.05;
+      margin-bottom: 24px;
+      color: var(--ink);
+    }
+    .hero h1 em {
+      font-style: italic;
+      font-weight: 400;
+    }
+    .hero-desc {
+      font-size: 1.15rem;
+      color: var(--ink-dim);
+      max-width: 540px;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+    .install-cmds {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .install-cmd {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      padding: 8px 16px;
+      cursor: text;
+      user-select: all;
+    }
+
+    /* ── SECTION DIVIDER ── */
+    .divider {
+      border: none;
+      border-top: 2px solid var(--border);
+      margin: 0;
+    }
+    .divider-light {
+      border-top: 1px solid var(--border-light);
+    }
+
+    /* ── SECTION HEADER ── */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 24px 32px 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .section-header h2 {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--ink);
+    }
+    .section-number {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--ink-faint);
+    }
+
+    /* ── PLAYGROUND ── */
+    .playground {
+      padding: 0 32px 0;
+    }
+    .channel-switcher {
+      display: flex;
+      gap: 0;
+      border: 1.5px solid var(--border);
+      width: fit-content;
+    }
+    .channel-btn {
+      padding: 6px 16px;
+      border: none;
+      background: transparent;
+      color: var(--ink-dim);
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      transition: all 0.1s;
+      border-right: 1.5px solid var(--border);
+    }
+    .channel-btn:last-child { border-right: none; }
+    .channel-btn.active {
+      background: var(--ink);
+      color: var(--bg);
+    }
+    .channel-btn:hover:not(.active) { background: var(--surface-alt); }
+
+    .panels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border: 2px solid var(--border);
+      margin-top: 16px;
+    }
+    @media (max-width: 900px) {
+      .panels { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      display: flex;
+      flex-direction: column;
+    }
+    .panel + .panel { border-left: 2px solid var(--border); }
+    @media (max-width: 900px) {
+      .panel + .panel { border-left: none; border-top: 2px solid var(--border); }
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border-light);
+      background: var(--surface-alt);
+    }
+    .panel-header h3 {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-dim);
+    }
+    .panel-status {
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      font-family: var(--mono);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .status-valid { color: var(--green); }
+    .status-error { color: var(--red); }
+
+    .panel-body {
+      flex: 1;
+      min-height: 420px;
+      position: relative;
+    }
+    .panel-body textarea, .panel-body pre {
+      width: 100%;
+      height: 100%;
+      min-height: 420px;
+      padding: 16px;
+      background: var(--surface);
+      border: none;
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      line-height: 1.75;
+      resize: none;
+      outline: none;
+      overflow: auto;
+    }
+    .panel-body pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      background: var(--surface);
+    }
+
+    /* ── PERSONALITY VIZ ── */
+    .personality-section {
+      padding: 0 32px 40px;
+    }
+    .personality-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border: 2px solid var(--border);
+    }
+    @media (max-width: 900px) {
+      .personality-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 500px) {
+      .personality-grid { grid-template-columns: 1fr; }
+    }
+    .trait-cell {
+      padding: 16px;
+      border-right: 1px solid var(--border-light);
+      border-bottom: 1px solid var(--border-light);
+      background: var(--surface);
+    }
+    .trait-cell:nth-child(4n) { border-right: none; }
+    @media (max-width: 900px) {
+      .trait-cell:nth-child(2n) { border-right: none; }
+      .trait-cell:nth-child(4n) { border-right: 1px solid var(--border-light); }
+    }
+    @media (max-width: 500px) {
+      .trait-cell { border-right: none !important; }
+    }
+    .trait-name {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-dim);
+      margin-bottom: 8px;
+    }
+    .trait-bar-wrap {
+      height: 4px;
+      background: var(--surface-alt);
+      margin-bottom: 6px;
+      position: relative;
+    }
+    .trait-fill {
+      height: 100%;
+      background: var(--ink);
+      transition: width 0.3s ease;
+    }
+    .trait-val {
+      font-family: var(--mono);
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    /* ── INTEGRATION CODE ── */
+    .integration-section {
+      padding: 0 32px 40px;
+    }
+    .code-block {
+      border: 2px solid var(--border);
+      overflow: hidden;
+    }
+    .code-block-header {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      border-bottom: 1px solid var(--border-light);
+      background: var(--surface-alt);
+    }
+    .code-tab {
+      padding: 8px 16px;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--ink-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border-right: 1px solid var(--border-light);
+    }
+    .code-tab.active { background: var(--ink); color: var(--bg); }
+    .code-block pre {
+      padding: 20px;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      line-height: 1.75;
+      overflow-x: auto;
+      color: var(--ink);
+      background: var(--surface);
+    }
+    .code-block .kw { color: #8b4c70; }
+    .code-block .str { color: var(--green); }
+    .code-block .fn { color: var(--blue); }
+    .code-block .cm { color: var(--ink-faint); }
+
+    /* ── WHY SECTION ── */
+    .why-section {
+      padding: 0 32px 60px;
+    }
+    .why-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border: 2px solid var(--border);
+    }
+    @media (max-width: 900px) {
+      .why-grid { grid-template-columns: 1fr; }
+    }
+    .why-cell {
+      padding: 28px 24px;
+      border-right: 1px solid var(--border-light);
+      border-bottom: 1px solid var(--border-light);
+      background: var(--surface);
+    }
+    .why-cell:nth-child(3n) { border-right: none; }
+    @media (max-width: 900px) {
+      .why-cell { border-right: none; }
+    }
+    .why-cell h3 {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-dim);
+      margin-bottom: 10px;
+    }
+    .why-cell p {
+      font-size: 0.92rem;
+      color: var(--ink);
+      line-height: 1.55;
+    }
+
+    /* ── SCHEMA EXAMPLE ── */
+    .minimal-section {
+      padding: 0 32px 40px;
+    }
+    .minimal-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border: 2px solid var(--border);
+    }
+    @media (max-width: 700px) {
+      .minimal-grid { grid-template-columns: 1fr; }
+    }
+    .minimal-cell {
+      padding: 24px;
+      background: var(--surface);
+    }
+    .minimal-cell + .minimal-cell {
+      border-left: 2px solid var(--border);
+    }
+    @media (max-width: 700px) {
+      .minimal-cell + .minimal-cell { border-left: none; border-top: 2px solid var(--border); }
+    }
+    .minimal-cell h3 {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-dim);
+      margin-bottom: 12px;
+    }
+    .minimal-cell pre {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      line-height: 1.75;
+      color: var(--ink);
+      white-space: pre-wrap;
+    }
+
+    /* ── ABOUT ── */
+    .about-section {
+      padding: 0 32px 60px;
+    }
+    .about-grid {
+      border: 2px solid var(--border);
+    }
+    .about-cell {
+      padding: 28px 24px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border-light);
+    }
+    .about-cell:last-child { border-bottom: none; }
+    .about-cell h3 {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-dim);
+      margin-bottom: 10px;
+    }
+    .about-cell p {
+      font-size: 0.92rem;
+      color: var(--ink);
+      line-height: 1.6;
+      max-width: 680px;
+    }
+    .about-cell p + p {
+      margin-top: 10px;
+    }
+    .about-cell code {
+      font-family: var(--mono);
+      font-size: 0.84rem;
+      background: var(--surface-alt);
+      padding: 1px 5px;
+    }
+    .about-cell pre {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      line-height: 1.75;
+      color: var(--ink);
+      background: var(--surface-alt);
+      padding: 12px 16px;
+      margin-top: 10px;
+      white-space: pre-wrap;
+      border: 1px solid var(--border-light);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 2px solid var(--border);
+      padding: 24px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    footer span {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--ink-dim);
+    }
+    .footer-links {
+      display: flex;
+      gap: 20px;
+    }
+    .footer-links a {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--ink-dim);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+    }
+    .footer-links a:hover { border-bottom-color: var(--ink); color: var(--ink); }
+
+    /* ── BUILDER ── */
+    .builder-section { padding: 0 32px 60px; }
+    .builder-layout {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      border: 2px solid var(--border);
+      min-height: 600px;
+    }
+    @media (max-width: 900px) { .builder-layout { grid-template-columns: 1fr; } }
+    .builder-form {
+      border-right: 2px solid var(--border);
+      overflow-y: auto;
+      max-height: 700px;
+      background: var(--surface);
+    }
+    @media (max-width: 900px) { .builder-form { border-right: none; border-bottom: 2px solid var(--border); max-height: none; } }
+    .builder-form details { border-bottom: 1px solid var(--border-light); }
+    .builder-form details[open] > summary { border-bottom: 1px solid var(--border-light); }
+    .builder-form summary {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 12px 16px;
+      cursor: pointer;
+      user-select: none;
+      color: var(--ink-dim);
+      background: var(--surface-alt);
+    }
+    .builder-form summary:hover { color: var(--ink); }
+    .b-section { padding: 14px 16px; }
+    .b-field { margin-bottom: 12px; }
+    .b-field:last-child { margin-bottom: 0; }
+    .b-label {
+      font-family: var(--mono);
+      font-size: 0.66rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-dim);
+      margin-bottom: 4px;
+      display: block;
+    }
+    .b-field input[type="text"], .b-field input[type="number"], .b-field textarea, .b-field select {
+      width: 100%;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      padding: 7px 10px;
+      border: 1.5px solid var(--border-light);
+      background: var(--surface);
+      color: var(--ink);
+      outline: none;
+    }
+    .b-field input:focus, .b-field textarea:focus, .b-field select:focus { border-color: var(--ink); }
+    .b-field textarea { resize: vertical; min-height: 50px; line-height: 1.5; }
+    .b-field select { appearance: none; cursor: pointer; }
+    .b-slider { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .b-slider-label {
+      font-family: var(--mono);
+      font-size: 0.66rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--ink-dim);
+      width: 90px;
+      flex-shrink: 0;
+    }
+    .b-slider input[type="range"] {
+      flex: 1; height: 4px;
+      -webkit-appearance: none; appearance: none;
+      background: var(--border-light); outline: none; cursor: pointer;
+    }
+    .b-slider input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; background: var(--ink); border-radius: 0; }
+    .b-slider input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; background: var(--ink); border: none; border-radius: 0; }
+    .b-slider-val { font-family: var(--mono); font-size: 0.72rem; font-weight: 600; width: 30px; text-align: right; }
+    .b-directive { font-size: 0.68rem; color: var(--ink-faint); margin-left: 98px; margin-bottom: 8px; line-height: 1.3; }
+    .b-presets { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 12px; }
+    .b-preset {
+      font-family: var(--mono); font-size: 0.66rem; text-transform: uppercase;
+      letter-spacing: 0.04em; padding: 3px 8px;
+      border: 1px solid var(--border-light); background: var(--surface); cursor: pointer; color: var(--ink-dim);
+    }
+    .b-preset:hover { background: var(--ink); color: var(--bg); }
+    .b-item { border: 1px solid var(--border-light); padding: 10px; margin-bottom: 6px; position: relative; }
+    .b-remove {
+      position: absolute; top: 6px; right: 6px;
+      font-family: var(--mono); font-size: 0.66rem; padding: 2px 6px;
+      border: 1px solid var(--border-light); background: var(--surface); cursor: pointer; color: var(--red);
+    }
+    .b-remove:hover { background: var(--red); color: white; border-color: var(--red); }
+    .b-add {
+      font-family: var(--mono); font-size: 0.68rem; text-transform: uppercase;
+      letter-spacing: 0.04em; padding: 5px 10px;
+      border: 1.5px dashed var(--border-light); background: transparent; cursor: pointer;
+      color: var(--ink-dim); width: 100%; margin-top: 6px;
+    }
+    .b-add:hover { border-color: var(--ink); color: var(--ink); }
+    .b-check { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+    .b-check input { width: 13px; height: 13px; cursor: pointer; }
+    .b-check label { font-family: var(--mono); font-size: 0.7rem; color: var(--ink-dim); cursor: pointer; }
+
+    .builder-output { display: flex; flex-direction: column; }
+    .b-out-tabs {
+      display: flex; border-bottom: 1px solid var(--border-light); background: var(--surface-alt);
+    }
+    .b-out-tab {
+      font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase;
+      letter-spacing: 0.06em; padding: 9px 14px;
+      border: none; background: transparent; cursor: pointer; color: var(--ink-dim);
+      border-right: 1px solid var(--border-light);
+    }
+    .b-out-tab.active { background: var(--ink); color: var(--bg); }
+    .b-out-tab:hover:not(.active) { background: var(--surface); }
+    .b-out-actions { margin-left: auto; display: flex; }
+    .b-out-actions button {
+      font-family: var(--mono); font-size: 0.68rem; text-transform: uppercase;
+      letter-spacing: 0.04em; padding: 9px 12px;
+      border: none; border-left: 1px solid var(--border-light); background: var(--surface-alt);
+      cursor: pointer; color: var(--ink-dim);
+    }
+    .b-out-actions button:hover { background: var(--ink); color: var(--bg); }
+    .b-out-body { flex: 1; overflow: auto; background: var(--surface); }
+    .b-out-body pre {
+      font-family: var(--mono); font-size: 0.76rem; line-height: 1.7;
+      padding: 16px; white-space: pre-wrap; word-wrap: break-word; color: var(--ink);
+      min-height: 400px;
+    }
+    .b-out-footer {
+      padding: 8px 16px; border-top: 1px solid var(--border-light);
+      background: var(--surface-alt); font-family: var(--mono); font-size: 0.7rem;
+    }
+    .b-out-footer.valid { color: var(--green); }
+    .b-out-footer.invalid { color: var(--red); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">grain</div>
+  <div class="nav-links">
+    <a href="#playground">Playground</a>
+    <a href="#builder">Builder</a>
+    <a href="#integration">Code</a>
+    <a href="https://www.npmjs.com/package/@reallyartificial/grain">npm</a>
+    <a href="https://pypi.org/project/grain-sdk/">PyPI</a>
+    <a href="https://github.com/reallyartificial/grain">GitHub</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-label">Data structure / v1.0</div>
+  <h1>A data structure<br>for <em>AI agents</em>.</h1>
+  <p class="hero-desc">Define agent personality as numbers, rules as objects, boundaries as constraints. Validate at build time, generate prompts at runtime, swap frameworks without rewriting.</p>
+  <div class="install-cmds">
+    <code class="install-cmd">npm install @reallyartificial/grain</code>
+    <code class="install-cmd">pip install grain-sdk</code>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- MINIMAL EXAMPLE -->
+<div class="section-header">
+  <h2>The Structure</h2>
+  <span class="section-number">6 lines min / 4 required fields</span>
+</div>
+<section class="minimal-section">
+  <div class="minimal-grid">
+    <div class="minimal-cell">
+      <h3>Input: .grain.yaml</h3>
+      <pre>specVersion: "1.0"
+id: my-bot
+version: 1.0.0
+meta:
+  name: My Bot
+  description: Does helpful things</pre>
+    </div>
+    <div class="minimal-cell">
+      <h3>Output: system prompt</h3>
+      <pre>You are My Bot, a AI Assistant.
+Your primary purpose: Does helpful things
+
+## Communication Style
+- Use a balanced tone - professional
+  but approachable.
+- Be friendly. Show basic courtesy and
+  acknowledge the human behind the request.
+...</pre>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- PLAYGROUND -->
+<div class="section-header" id="playground">
+  <h2>Live Playground</h2>
+  <div class="channel-switcher">
+    <button class="channel-btn active" data-channel="">Default</button>
+    <button class="channel-btn" data-channel="slack">Slack</button>
+    <button class="channel-btn" data-channel="email">Email</button>
+  </div>
+</div>
+<section class="playground">
+  <div class="panels">
+    <div class="panel">
+      <div class="panel-header">
+        <h3>Grain (YAML)</h3>
+        <span class="panel-status status-valid" id="validation-status">Valid</span>
+      </div>
+      <div class="panel-body">
+        <textarea id="yaml-input" spellcheck="false"></textarea>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <h3>Generated System Prompt</h3>
+        <span class="panel-status" id="channel-label" style="color:var(--ink-dim)">default</span>
+      </div>
+      <div class="panel-body">
+        <pre id="prompt-output"></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" style="margin-top:40px">
+
+<!-- PERSONALITY -->
+<div class="section-header">
+  <h2>Personality Vector</h2>
+  <span class="section-number">8 dimensions / 5 graduated levels each</span>
+</div>
+<section class="personality-section">
+  <div class="personality-grid" id="personality-viz"></div>
+</section>
+
+<hr class="divider">
+
+<!-- INTEGRATION -->
+<div class="section-header" id="integration">
+  <h2>Integration</h2>
+  <span class="section-number">Grain.load &rarr; .toPrompt &rarr; call any LLM</span>
+</div>
+<section class="integration-section">
+  <div class="code-block">
+    <div class="code-block-header">
+      <button class="code-tab active" data-lang="ts">TypeScript</button>
+      <button class="code-tab" data-lang="py">Python</button>
+    </div>
+    <pre id="integration-code"></pre>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- WHY -->
+<div class="section-header">
+  <h2>Why Grain</h2>
+</div>
+<section class="why-section">
+  <div class="why-grid">
+    <div class="why-cell">
+      <h3>Tiered Complexity</h3>
+      <p>Start with 6 lines. Add personality, rules, and boundaries as needed. Only 4 fields required.</p>
+    </div>
+    <div class="why-cell">
+      <h3>Channel-Aware</h3>
+      <p>One spec, multiple outputs. Override tone per channel. Same agent, context-appropriate behavior.</p>
+    </div>
+    <div class="why-cell">
+      <h3>5-Level Personality</h3>
+      <p>0-1 values map to behavioral directives via graduated semantic anchoring. Real granularity, not coarse buckets.</p>
+    </div>
+    <div class="why-cell">
+      <h3>Framework Portable</h3>
+      <p>Define once, run on any LLM framework or raw API. Grain is the data. Frameworks are the runtime.</p>
+    </div>
+    <div class="why-cell">
+      <h3>Schema Validated</h3>
+      <p>JSON Schema 2020-12. Catch errors at build time. Editor autocomplete via $schema.</p>
+    </div>
+    <div class="why-cell">
+      <h3>Real Operations</h3>
+      <p>addRule, setPersonality, merge, diff, toPrompt. Primitive operations like a real data structure.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- BUILDER -->
+<div class="section-header" id="builder">
+  <h2>Agent Builder</h2>
+  <span class="section-number">Real SDK / Live validation</span>
+</div>
+<section class="builder-section">
+  <div class="builder-layout">
+    <div class="builder-form" id="builder-form">
+
+      <details open>
+        <summary>Meta</summary>
+        <div class="b-section">
+          <div class="b-field"><label class="b-label">ID</label><input type="text" data-bp="id" placeholder="my-agent"></div>
+          <div class="b-field"><label class="b-label">Name</label><input type="text" data-bp="meta.name" placeholder="My Agent"></div>
+          <div class="b-field"><label class="b-label">Description</label><textarea data-bp="meta.description" placeholder="What does this agent do?"></textarea></div>
+          <div class="b-field"><label class="b-label">Version</label><input type="text" data-bp="version" placeholder="1.0.0"></div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>Identity</summary>
+        <div class="b-section">
+          <div class="b-field"><label class="b-label">Name</label><input type="text" data-bp="identity.name" placeholder="Alex"></div>
+          <div class="b-field"><label class="b-label">Role</label><input type="text" data-bp="identity.role" placeholder="Support Specialist"></div>
+          <div class="b-field"><label class="b-label">Primary Purpose</label><textarea data-bp="identity.purpose.primary" placeholder="Resolve customer issues"></textarea></div>
+          <div class="b-field"><label class="b-label">Expertise</label><div id="b-expertise"></div><button class="b-add" data-badd="expertise">+ Add Expertise</button></div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>Personality</summary>
+        <div class="b-section">
+          <div class="b-presets">
+            <button class="b-preset" data-bpreset="professional">Professional</button>
+            <button class="b-preset" data-bpreset="friendly">Friendly</button>
+            <button class="b-preset" data-bpreset="expert">Expert</button>
+            <button class="b-preset" data-bpreset="creative">Creative</button>
+            <button class="b-preset" data-bpreset="executor">Executor</button>
+          </div>
+          <div id="b-personality"></div>
+        </div>
+      </details>
+
+      <details>
+        <summary>Language Style</summary>
+        <div class="b-section">
+          <div class="b-field"><label class="b-label">Sentence Length</label><select data-bp="voice.language.sentenceLength"><option value="short">Short</option><option value="medium" selected>Medium</option><option value="long">Long</option></select></div>
+          <div class="b-field"><label class="b-label">Jargon Level</label><select data-bp="voice.language.jargonLevel"><option value="none">None</option><option value="light" selected>Light</option><option value="moderate">Moderate</option><option value="heavy">Heavy</option></select></div>
+          <div class="b-field"><label class="b-label">Emoji Usage</label><select data-bp="voice.language.emojiUsage"><option value="never">Never</option><option value="sparingly" selected>Sparingly</option><option value="frequently">Frequently</option></select></div>
+          <div class="b-field"><label class="b-label">Structure</label><select data-bp="voice.language.structure"><option value="bullets">Bullets</option><option value="mixed" selected>Mixed</option><option value="prose">Prose</option></select></div>
+          <div class="b-check"><input type="checkbox" id="b-analogies" data-bp="voice.language.usesAnalogies"><label for="b-analogies">Uses Analogies</label></div>
+        </div>
+      </details>
+
+      <details>
+        <summary>Channel Overrides</summary>
+        <div class="b-section">
+          <div id="b-channels"></div>
+          <button class="b-add" data-badd="channel">+ Add Channel</button>
+        </div>
+      </details>
+
+      <details>
+        <summary>Behavior Rules</summary>
+        <div class="b-section">
+          <div id="b-rules"></div>
+          <button class="b-add" data-badd="rule">+ Add Rule</button>
+        </div>
+      </details>
+
+      <details>
+        <summary>Boundaries</summary>
+        <div class="b-section">
+          <div id="b-boundaries"></div>
+          <button class="b-add" data-badd="boundary">+ Add Boundary</button>
+        </div>
+      </details>
+
+      <details>
+        <summary>Cognition</summary>
+        <div class="b-section">
+          <div class="b-field"><label class="b-label">Reasoning Style</label><select data-bp="cognition.reasoningStyle.primary"><option value="analytical" selected>Analytical</option><option value="intuitive">Intuitive</option><option value="creative">Creative</option><option value="systematic">Systematic</option></select></div>
+          <div class="b-check"><input type="checkbox" id="b-showreason" data-bp="cognition.reasoningStyle.showReasoning"><label for="b-showreason">Show Reasoning</label></div>
+          <div class="b-field"><label class="b-label">Analysis Depth</label><select data-bp="cognition.reasoningStyle.analysisDepth"><option value="surface">Surface</option><option value="moderate" selected>Moderate</option><option value="deep">Deep</option><option value="exhaustive">Exhaustive</option></select></div>
+          <div class="b-field"><label class="b-label">Autonomy</label><select data-bp="cognition.decisionMaking.autonomy"><option value="fully-autonomous">Fully Autonomous</option><option value="ask-for-major" selected>Ask for Major</option><option value="always-ask">Always Ask</option></select></div>
+          <div class="b-check"><input type="checkbox" id="b-uncertainty" data-bp="cognition.uncertainty.communicateUncertainty" checked><label for="b-uncertainty">Communicate Uncertainty</label></div>
+        </div>
+      </details>
+
+    </div>
+
+    <div class="builder-output">
+      <div class="b-out-tabs">
+        <button class="b-out-tab active" data-btab="yaml">YAML</button>
+        <button class="b-out-tab" data-btab="typescript">TypeScript</button>
+        <button class="b-out-tab" data-btab="python">Python</button>
+        <button class="b-out-tab" data-btab="prompt">Prompt</button>
+        <div class="b-out-actions">
+          <button id="b-download">Download</button>
+          <button id="b-copy">Copy</button>
+        </div>
+      </div>
+      <div class="b-out-body"><pre id="b-output"></pre></div>
+      <div class="b-out-footer valid" id="b-status">Valid</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>Grain / MIT License</span>
+  <div class="footer-links">
+    <a href="https://github.com/reallyartificial/grain">GitHub</a>
+    <a href="https://www.npmjs.com/package/@reallyartificial/grain">npm</a>
+    <a href="https://pypi.org/project/grain-sdk/">PyPI</a>
+    <a href="/v1/schema.json">Schema</a>
+  </div>
+</footer>
+
+<script>
+// ============================================================================
+// MINI GRAIN ENGINE (browser-side, no dependencies)
+// Implements the same 5-level graduated prompt generation algorithm
+// ============================================================================
+
+const PERSONALITY_DIRECTIVES = {
+  formality: [
+    [0.2, "- Be very casual. Use slang, contractions, and an informal register freely."],
+    [0.4, "- Be conversational and approachable. Minimal formalities, relaxed tone."],
+    [0.6, "- Use a balanced tone \u2014 professional but approachable."],
+    [0.8, "- Be professional and polished. Use measured, clear language."],
+    [1.01, "- Maintain a highly formal, precise tone. Use institutional register and proper structure."],
+  ],
+  warmth: [
+    [0.2, "- Be direct and clinical. Focus purely on facts and outcomes, not feelings."],
+    [0.4, "- Be polite but task-focused. Acknowledge emotions only when they directly affect the task."],
+    [0.6, "- Be friendly. Show basic courtesy and acknowledge the human behind the request."],
+    [0.8, "- Be warm and empathetic. Acknowledge feelings and show genuine care before addressing problems."],
+    [1.01, "- Lead with empathy. Mirror the user's emotional state, use inclusive language ('let\u2019s', 'we can'), and validate feelings before solutions."],
+  ],
+  humor: [
+    [0.2, "- Stay serious and focused. No jokes, wordplay, or playful language."],
+    [0.4, "- Keep things mostly serious. Light tone is acceptable but avoid overt humor."],
+    [0.6, "- A touch of wit is fine when it serves clarity, but don't force it."],
+    [0.8, "- Use humor and wit naturally. Lighten the mood when appropriate."],
+    [1.01, "- Be playful and witty throughout. Use wordplay, gentle teasing, and humor as a core communication tool."],
+  ],
+  assertiveness: [
+    [0.2, "- Be passive and deferential. Always wait for explicit direction. Never presume."],
+    [0.4, "- Be reactive. Offer options but let the user drive decisions."],
+    [0.6, "- Balance initiative with deference. Suggest directions but ask before acting."],
+    [0.8, "- Be proactive. Make clear recommendations and push conversations forward."],
+    [1.01, "- Be highly assertive. Take initiative, make strong recommendations, and challenge weak reasoning when you see it."],
+  ],
+  verbosity: [
+    [0.2, "- Be extremely terse. Single sentences when possible. No preamble, no filler."],
+    [0.4, "- Keep responses brief and focused. Get to the point quickly."],
+    [0.6, "- Use a moderate level of detail. Explain enough for clarity without over-elaborating."],
+    [0.8, "- Provide detailed, thorough explanations. Include context and reasoning."],
+    [1.01, "- Be comprehensive. Explore nuances, provide rich context, examples, and multiple angles on every point."],
+  ],
+  confidence: [
+    [0.2, "- Hedge heavily. Use qualifiers ('perhaps', 'it might be', 'one possible'). Communicate uncertainty as the default."],
+    [0.4, "- Show appropriate uncertainty. Qualify statements where evidence is incomplete."],
+    [0.6, "- Be moderately confident. State things clearly but acknowledge limitations when relevant."],
+    [0.8, "- Be decisive. State things clearly without excessive hedging."],
+    [1.01, "- Be maximally decisive. Commit to positions. Eliminate hedging language entirely. Project authority."],
+  ],
+  concreteness: [
+    [0.2, "- Stay abstract and conceptual. Focus on frameworks, principles, and high-level thinking."],
+    [0.4, "- Lean toward concepts and theory. Use examples sparingly."],
+    [0.6, "- Mix abstract concepts with concrete examples as appropriate."],
+    [0.8, "- Use concrete examples, specific numbers, and actionable steps."],
+    [1.01, "- Be hyper-concrete. Every point gets a specific example, exact number, or step-by-step action. No hand-waving."],
+  ],
+  urgency: [
+    [0.2, "- Take time to be thorough. Prioritize completeness and quality over speed. Never rush."],
+    [0.4, "- Be measured and deliberate. Thoroughness over haste."],
+    [0.6, "- Balance thoroughness with efficiency. Cover what matters, skip what doesn't."],
+    [0.8, "- Move quickly. Bias toward action and shipping over perfection."],
+    [1.01, "- Maximum urgency. Get to the answer immediately. Skip context unless asked. Action over analysis."],
+  ],
+};
+
+function parseYaml(text) {
+  try {
+    const lines = text.split('\n');
+    return parseYamlLines(lines, 0, 0).value;
+  } catch(e) { return null; }
+}
+
+function parseYamlLines(lines, start, baseIndent) {
+  const result = {};
+  let i = start;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line.trim() === '' || line.trim().startsWith('#') || line.trim().startsWith('$')) { i++; continue; }
+    const indent = line.search(/\S/);
+    if (indent < baseIndent) break;
+    if (indent > baseIndent && i > start) break;
+
+    const content = line.trim();
+    const colonIdx = content.indexOf(':');
+    if (colonIdx === -1) { i++; continue; }
+
+    const key = content.slice(0, colonIdx).trim();
+    let val = content.slice(colonIdx + 1).trim();
+
+    if (val === '') {
+      if (i + 1 < lines.length) {
+        const nextLine = lines[i + 1];
+        const nextIndent = nextLine.search(/\S/);
+        if (nextIndent > indent) {
+          if (nextLine.trim().startsWith('- ')) {
+            const list = [];
+            let j = i + 1;
+            while (j < lines.length && lines[j].search(/\S/) >= nextIndent) {
+              const lt = lines[j].trim();
+              if (lt.startsWith('- ')) {
+                list.push(parseValue(lt.slice(2).trim()));
+              }
+              j++;
+            }
+            result[key] = list;
+            i = j;
+            continue;
+          } else {
+            const nested = parseYamlLines(lines, i + 1, nextIndent);
+            result[key] = nested.value;
+            i = nested.end;
+            continue;
+          }
+        }
+      }
+      result[key] = null;
+    } else if (val.startsWith('{')) {
+      result[key] = parseInlineObj(val);
+    } else if (val.startsWith('[')) {
+      result[key] = parseInlineArr(val);
+    } else {
+      result[key] = parseValue(val);
+    }
+    i++;
+  }
+  return { value: result, end: i };
+}
+
+function parseInlineObj(s) {
+  const inner = s.slice(1, -1).trim();
+  if (!inner) return {};
+  const obj = {};
+  const parts = inner.split(',');
+  for (const p of parts) {
+    const [k, ...rest] = p.split(':');
+    if (k) obj[k.trim()] = parseValue(rest.join(':').trim());
+  }
+  return obj;
+}
+function parseInlineArr(s) {
+  const inner = s.slice(1, -1).trim();
+  if (!inner) return [];
+  return inner.split(',').map(x => parseValue(x.trim()));
+}
+
+function parseValue(v) {
+  if (v === 'true') return true;
+  if (v === 'false') return false;
+  if (v === 'null' || v === '') return null;
+  if (v.startsWith('"') && v.endsWith('"')) return v.slice(1, -1);
+  if (v.startsWith("'") && v.endsWith("'")) return v.slice(1, -1);
+  const n = Number(v);
+  if (!isNaN(n) && v !== '') return n;
+  return v;
+}
+
+function generatePrompt(spec, channel) {
+  if (!spec || !spec.identity) return '';
+  const sections = [];
+  sections.push(identitySection(spec));
+  sections.push(voiceSection(spec, channel));
+  sections.push(cognitionSection(spec));
+  sections.push(behaviorSection(spec));
+  sections.push(boundariesSection(spec));
+  return sections.filter(Boolean).join('\n\n');
+}
+
+function identitySection(spec) {
+  const id = spec.identity;
+  const lines = [`You are ${id.name}, a ${id.role}.`];
+  if (id.purpose) lines.push(`Your primary purpose: ${id.purpose.primary}`);
+  if (id.purpose?.secondary?.length) lines.push(`Secondary objectives: ${id.purpose.secondary.join('; ')}`);
+  if (id.expertise?.length) {
+    const expert = id.expertise.filter(e => e.proficiency > 0.7).map(e => e.domain);
+    if (expert.length) lines.push(`You have deep expertise in: ${expert.join(', ')}.`);
+  }
+  return lines.join('\n');
+}
+
+function voiceSection(spec, channel) {
+  let p = {...(spec.voice?.personality || {})};
+  let lang = {...(spec.voice?.language || {})};
+  if (channel && spec.voice?.channelOverrides?.[channel]) {
+    const o = spec.voice.channelOverrides[channel];
+    p = {...p, ...o};
+    lang = {...lang, ...o};
+  }
+  const lines = ['## Communication Style'];
+  for (const [dim, levels] of Object.entries(PERSONALITY_DIRECTIVES)) {
+    const val = p[dim] ?? 0.5;
+    for (const [max, directive] of levels) {
+      if (val < max || (max > 1 && val <= 1)) { lines.push(directive); break; }
+    }
+  }
+  if (lang.sentenceLength === 'short') lines.push('- Use short, punchy sentences.');
+  else if (lang.sentenceLength === 'long') lines.push('- Use longer, more flowing sentences when explaining.');
+  if (lang.jargonLevel === 'none') lines.push('- Avoid technical jargon. Explain in plain language.');
+  else if (lang.jargonLevel === 'heavy') lines.push('- Use domain-specific terminology freely \u2014 your audience is technical.');
+  if (lang.emojiUsage === 'frequently') lines.push('- Use emoji to add personality and visual breaks.');
+  else if (lang.emojiUsage === 'never') lines.push('- Never use emoji.');
+  if (lang.structure === 'bullets') lines.push('- Prefer bullet points and lists over dense paragraphs.');
+  else if (lang.structure === 'prose') lines.push('- Write in flowing prose rather than bullet points.');
+  if (lang.usesAnalogies) lines.push('- Use analogies and metaphors to explain complex ideas.');
+  return lines.join('\n');
+}
+
+function cognitionSection(spec) {
+  if (!spec.cognition) return '';
+  const c = spec.cognition;
+  const lines = ['## Thinking Approach'];
+  if (c.reasoningStyle?.showReasoning) lines.push('- Show your reasoning process step by step.');
+  if (c.reasoningStyle?.multiPerspective) lines.push('- Consider multiple perspectives before concluding.');
+  if (['deep','exhaustive'].includes(c.reasoningStyle?.analysisDepth)) lines.push("- Analyze problems deeply before responding. Don't settle for surface-level answers.");
+  if (c.decisionMaking?.autonomy === 'fully-autonomous') lines.push('- Make decisions autonomously. Only ask when truly blocked.');
+  else if (c.decisionMaking?.autonomy === 'always-ask') lines.push('- Always confirm with the user before taking significant actions.');
+  if (c.uncertainty?.communicateUncertainty) lines.push('- Explicitly state your confidence level when uncertain.');
+  if (c.uncertainty?.lowConfidenceAction === 'ask') lines.push(`- If your confidence drops below ${Math.round((c.uncertainty.confidenceFloor||0)*100)}%, ask for clarification rather than guessing.`);
+  return lines.length > 1 ? lines.join('\n') : '';
+}
+
+function behaviorSection(spec) {
+  const rules = spec.behavior?.rules || [];
+  if (!rules.length) return '';
+  const lines = ['## Behavioral Rules'];
+  const sorted = [...rules].sort((a,b) => (b.priority||0) - (a.priority||0));
+  for (const r of sorted) {
+    const cond = condText(r.condition);
+    const act = actText(r.action);
+    lines.push(`- ${cond}: ${act}`);
+  }
+  return lines.join('\n');
+}
+
+function condText(c) {
+  if (!c) return 'Always';
+  switch(c.type) {
+    case 'always': return 'Always';
+    case 'when-topic': return `When discussing ${(c.topics||[]).join(' or ')}`;
+    case 'when-sentiment': return `When the user seems ${c.sentiment}`;
+    case 'when-confidence-below': return `When confidence is below ${Math.round((c.threshold||0)*100)}%`;
+    default: return c.type || 'Always';
+  }
+}
+function actText(a) {
+  if (!a) return '';
+  switch(a.type) {
+    case 'respond-with-style': return 'adjust communication style accordingly';
+    case 'escalate': return `escalate to ${a.target} (${a.reason})`;
+    case 'require-confirmation': return 'ask for confirmation before proceeding';
+    case 'use-tool': return `use the ${a.tool} tool`;
+    case 'refuse': return `decline with: "${a.message}"`;
+    case 'adjust-depth': return `provide ${a.depth}-level analysis`;
+    default: return a.type || '';
+  }
+}
+
+function boundariesSection(spec) {
+  const bounds = (spec.behavior?.boundaries || []).filter(b => b.enforcement === 'hard');
+  if (!bounds.length) return '';
+  const lines = ['## Hard Boundaries (Never Violate)'];
+  for (const b of bounds) lines.push(`- NEVER: ${b.description}`);
+  return lines.join('\n');
+}
+
+// ============================================================================
+// UI LOGIC
+// ============================================================================
+
+const DEFAULT_YAML = `specVersion: "1.0"
+id: acme-support-agent
+version: 2.1.0
+meta:
+  name: Acme Support Agent
+  description: Customer-facing support agent for Acme SaaS platform
+
+identity:
+  name: Alex
+  role: Senior Support Specialist
+  purpose:
+    primary: Resolve customer issues quickly while maintaining satisfaction
+  expertise:
+    - domain: Acme Platform
+      proficiency: 0.95
+    - domain: Technical Troubleshooting
+      proficiency: 0.85
+
+voice:
+  personality:
+    formality: 0.5
+    warmth: 0.8
+    humor: 0.2
+    assertiveness: 0.6
+    verbosity: 0.4
+    confidence: 0.7
+    concreteness: 0.9
+    urgency: 0.7
+  language:
+    locale: en
+    sentenceLength: short
+    jargonLevel: none
+    emojiUsage: never
+    structure: mixed
+    usesAnalogies: true
+    addressing: first-person
+  channelOverrides:
+    slack:
+      formality: 0.3
+      humor: 0.4
+      emojiUsage: frequently
+      structure: bullets
+    email:
+      formality: 0.8
+      verbosity: 0.7
+      emojiUsage: never
+
+cognition:
+  reasoningStyle:
+    primary: analytical
+    showReasoning: false
+    analysisDepth: moderate
+    multiPerspective: false
+  decisionMaking:
+    speed: 0.7
+    evidenceThreshold: 0.5
+    reversibilityPreference: neutral
+    autonomy: ask-for-major
+  uncertainty:
+    lowConfidenceAction: ask
+    confidenceFloor: 0.4
+    communicateUncertainty: true
+    conflictResolution: ask-user
+
+behavior:
+  rules:
+    - id: low-confidence-escalate
+      priority: 20
+      condition:
+        type: when-confidence-below
+        threshold: 0.3
+      action:
+        type: escalate
+        target: human-support-lead
+        reason: Low confidence in resolution
+    - id: frustrated-user
+      priority: 10
+      condition:
+        type: when-sentiment
+        sentiment: frustrated
+      action:
+        type: respond-with-style
+    - id: billing-confirmation
+      priority: 15
+      condition:
+        type: when-topic
+        topics:
+          - refund
+          - cancellation
+          - plan-change
+      action:
+        type: require-confirmation
+  boundaries:
+    - description: Never share internal system details, architecture, or source code
+      enforcement: hard
+    - description: Never process refunds over $500 without human approval
+      enforcement: hard`;
+
+let currentChannel = '';
+const yamlInput = document.getElementById('yaml-input');
+const promptOutput = document.getElementById('prompt-output');
+const validationStatus = document.getElementById('validation-status');
+const channelLabel = document.getElementById('channel-label');
+const personalityViz = document.getElementById('personality-viz');
+
+yamlInput.value = DEFAULT_YAML;
+
+function update() {
+  const spec = parseYaml(yamlInput.value);
+  if (!spec || !spec.specVersion) {
+    validationStatus.textContent = 'Error';
+    validationStatus.className = 'panel-status status-error';
+    promptOutput.textContent = '// Invalid YAML - check your syntax';
+    return;
+  }
+
+  // Apply defaults for minimal specs
+  if (!spec.identity && spec.meta) {
+    spec.identity = { name: spec.meta.name, role: 'AI Assistant', purpose: { primary: spec.meta.description || 'Assist the user' }, expertise: [] };
+  }
+  if (!spec.voice) {
+    spec.voice = { personality: { formality:0.5, warmth:0.5, humor:0.3, assertiveness:0.5, verbosity:0.5, confidence:0.6, concreteness:0.6, urgency:0.4 }, language: {} };
+  }
+
+  validationStatus.textContent = 'Valid';
+  validationStatus.className = 'panel-status status-valid';
+  channelLabel.textContent = currentChannel || 'default';
+
+  const prompt = generatePrompt(spec, currentChannel || undefined);
+  promptOutput.textContent = prompt;
+
+  // Update personality viz
+  const dims = ['formality','warmth','humor','assertiveness','verbosity','confidence','concreteness','urgency'];
+  let p = spec.voice?.personality || {};
+  if (currentChannel && spec.voice?.channelOverrides?.[currentChannel]) {
+    p = {...p, ...spec.voice.channelOverrides[currentChannel]};
+  }
+  personalityViz.innerHTML = dims.map(d => `
+    <div class="trait-cell">
+      <div class="trait-name">${d}</div>
+      <div class="trait-bar-wrap"><div class="trait-fill" style="width:${(p[d]||0.5)*100}%"></div></div>
+      <div class="trait-val">${(p[d]||0.5).toFixed(1)}</div>
+    </div>
+  `).join('');
+
+  updateIntegrationCode(spec);
+}
+
+function updateIntegrationCode(spec) {
+  const el = document.getElementById('integration-code');
+  const activeLang = document.querySelector('.code-tab.active')?.dataset.lang || 'ts';
+  const id = spec.id || 'my-agent';
+  const ch = currentChannel ? `, "${currentChannel}"` : '';
+  const chPy = currentChannel ? `, "${currentChannel}"` : '';
+
+  if (activeLang === 'ts') {
+    el.innerHTML = `<span class="cm">// npm install @reallyartificial/grain</span>
+<span class="kw">import</span> { Grain } <span class="kw">from</span> <span class="str">"@reallyartificial/grain"</span>
+<span class="kw">import</span> OpenAI <span class="kw">from</span> <span class="str">"openai"</span>
+
+<span class="kw">const</span> agent = <span class="fn">Grain.load</span>(<span class="str">"./${id}.grain.yaml"</span>)
+<span class="kw">const</span> openai = <span class="kw">new</span> <span class="fn">OpenAI</span>()
+
+<span class="kw">const</span> response = <span class="kw">await</span> openai.chat.completions.<span class="fn">create</span>({
+  model: <span class="str">"gpt-4o"</span>,
+  messages: [
+    { role: <span class="str">"system"</span>, content: agent.<span class="fn">toPrompt</span>(${currentChannel ? `<span class="str">"${currentChannel}"</span>` : ''}) },
+    { role: <span class="str">"user"</span>, content: <span class="str">"Hello!"</span> }
+  ]
+})
+
+console.<span class="fn">log</span>(response.choices[0].message.content)`;
+  } else {
+    el.innerHTML = `<span class="cm"># pip install grain-sdk</span>
+<span class="kw">from</span> grain <span class="kw">import</span> Grain
+<span class="kw">from</span> openai <span class="kw">import</span> OpenAI
+
+agent = <span class="fn">Grain.load</span>(<span class="str">"./${id}.grain.yaml"</span>)
+client = <span class="fn">OpenAI</span>()
+
+response = client.chat.completions.<span class="fn">create</span>(
+    model=<span class="str">"gpt-4o"</span>,
+    messages=[
+        {<span class="str">"role"</span>: <span class="str">"system"</span>, <span class="str">"content"</span>: agent.<span class="fn">to_prompt</span>(${currentChannel ? `<span class="str">"${currentChannel}"</span>` : ''})},
+        {<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: <span class="str">"Hello!"</span>}
+    ]
+)
+
+<span class="fn">print</span>(response.choices[0].message.content)`;
+  }
+}
+
+// Event listeners
+yamlInput.addEventListener('input', update);
+
+document.querySelectorAll('.channel-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.channel-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentChannel = btn.dataset.channel;
+    update();
+  });
+});
+
+document.querySelectorAll('.code-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.code-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    update();
+  });
+});
+
+// Initial render
+update();
+
+// ============================================================================
+// BUILDER (uses real SDK via /api/build serverless function)
+// ============================================================================
+
+const B_PRESETS = {
+  professional: { formality: 0.7, warmth: 0.5, humor: 0.1, assertiveness: 0.6, verbosity: 0.5, confidence: 0.7, concreteness: 0.7, urgency: 0.4 },
+  friendly: { formality: 0.3, warmth: 0.8, humor: 0.4, assertiveness: 0.4, verbosity: 0.6, confidence: 0.6, concreteness: 0.6, urgency: 0.3 },
+  expert: { formality: 0.5, warmth: 0.3, humor: 0.1, assertiveness: 0.8, verbosity: 0.4, confidence: 0.9, concreteness: 0.9, urgency: 0.5 },
+  creative: { formality: 0.2, warmth: 0.7, humor: 0.7, assertiveness: 0.6, verbosity: 0.7, confidence: 0.6, concreteness: 0.4, urgency: 0.3 },
+  executor: { formality: 0.4, warmth: 0.2, humor: 0.0, assertiveness: 0.9, verbosity: 0.1, confidence: 0.9, concreteness: 1.0, urgency: 0.8 },
+};
+
+const B_DIMS = ['formality','warmth','humor','assertiveness','verbosity','confidence','concreteness','urgency'];
+
+const B_DIRECTIVES = {
+  formality: [[0.2,"Very casual"],[0.4,"Conversational"],[0.6,"Balanced"],[0.8,"Professional"],[1.01,"Highly formal"]],
+  warmth: [[0.2,"Clinical"],[0.4,"Polite"],[0.6,"Friendly"],[0.8,"Warm"],[1.01,"Empathetic"]],
+  humor: [[0.2,"Serious"],[0.4,"Mostly serious"],[0.6,"Touch of wit"],[0.8,"Humorous"],[1.01,"Playful"]],
+  assertiveness: [[0.2,"Passive"],[0.4,"Reactive"],[0.6,"Balanced"],[0.8,"Proactive"],[1.01,"Assertive"]],
+  verbosity: [[0.2,"Terse"],[0.4,"Brief"],[0.6,"Moderate"],[0.8,"Detailed"],[1.01,"Comprehensive"]],
+  confidence: [[0.2,"Hedging"],[0.4,"Uncertain"],[0.6,"Moderate"],[0.8,"Decisive"],[1.01,"Authoritative"]],
+  concreteness: [[0.2,"Abstract"],[0.4,"Conceptual"],[0.6,"Mixed"],[0.8,"Concrete"],[1.01,"Hyper-concrete"]],
+  urgency: [[0.2,"Thorough"],[0.4,"Measured"],[0.6,"Balanced"],[0.8,"Quick"],[1.01,"Maximum urgency"]],
+};
+
+function bDir(dim, val) {
+  for (const [max, t] of B_DIRECTIVES[dim] || []) { if (val < max || max > 1) return t; }
+  return "";
+}
+
+let bState = {
+  specVersion: "1.0",
+  id: "", version: "1.0.0",
+  meta: { name: "", description: "" },
+  identity: { name: "", role: "", purpose: { primary: "" }, expertise: [] },
+  voice: {
+    personality: { formality: 0.5, warmth: 0.5, humor: 0.3, assertiveness: 0.5, verbosity: 0.5, confidence: 0.6, concreteness: 0.6, urgency: 0.4 },
+    language: { locale: "en", sentenceLength: "medium", jargonLevel: "light", emojiUsage: "sparingly", structure: "mixed", usesAnalogies: false },
+    channelOverrides: {}
+  },
+  cognition: {
+    reasoningStyle: { primary: "analytical", showReasoning: false, analysisDepth: "moderate" },
+    decisionMaking: { autonomy: "ask-for-major" },
+    uncertainty: { communicateUncertainty: true }
+  },
+  behavior: { rules: [], boundaries: [] }
+};
+
+let bTab = "yaml";
+let bOutput = { yaml: "", prompt: "", codeTs: "", codePy: "" };
+let bTimer = null;
+
+function bSetPath(obj, path, val) {
+  const p = path.split("."); let c = obj;
+  for (let i = 0; i < p.length - 1; i++) { if (!(p[i] in c)) c[p[i]] = {}; c = c[p[i]]; }
+  c[p[p.length-1]] = val;
+}
+function bGetPath(obj, path) {
+  const p = path.split("."); let c = obj;
+  for (const k of p) { if (c == null) return undefined; c = c[k]; }
+  return c;
+}
+
+function bSchedule() { if (bTimer) clearTimeout(bTimer); bTimer = setTimeout(bRender, 300); }
+
+function bBuildSpec() {
+  const s = JSON.parse(JSON.stringify(bState));
+  if (!s.id) delete s.id;
+  if (!s.meta.name && !s.meta.description) delete s.meta;
+  if (!s.identity.name && !s.identity.role && !s.identity.purpose.primary) delete s.identity;
+  if (s.identity && !s.identity.expertise?.length) delete s.identity.expertise;
+  if (!Object.keys(s.voice.channelOverrides).length) delete s.voice.channelOverrides;
+  if (!s.behavior.rules.length && !s.behavior.boundaries.length) delete s.behavior;
+  else { if (!s.behavior.rules.length) delete s.behavior.rules; if (!s.behavior.boundaries.length) delete s.behavior.boundaries; }
+  return s;
+}
+
+async function bRender() {
+  const spec = bBuildSpec();
+  try {
+    const res = await fetch("/api/build", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ spec })
+    });
+    const data = await res.json();
+    bOutput = data;
+    bShowOutput();
+    const st = document.getElementById("b-status");
+    if (data.valid) { st.textContent = "Valid"; st.className = "b-out-footer valid"; }
+    else { st.textContent = (data.errors?.length || 0) + " error(s): " + (data.errors?.[0]?.message || ""); st.className = "b-out-footer invalid"; }
+  } catch(e) {
+    document.getElementById("b-output").textContent = "// Connecting to server...";
+  }
+}
+
+function bShowOutput() {
+  const el = document.getElementById("b-output");
+  switch(bTab) {
+    case "yaml": el.textContent = bOutput.yaml || ""; break;
+    case "typescript": el.textContent = bOutput.codeTs || ""; break;
+    case "python": el.textContent = bOutput.codePy || ""; break;
+    case "prompt": el.textContent = bOutput.prompt || ""; break;
+  }
+}
+
+// Personality sliders
+function bRenderPersonality() {
+  const c = document.getElementById("b-personality");
+  c.innerHTML = "";
+  for (const dim of B_DIMS) {
+    const val = bState.voice.personality[dim] || 0.5;
+    const d = document.createElement("div");
+    d.innerHTML = `<div class="b-slider"><span class="b-slider-label">${dim}</span><input type="range" min="0" max="1" step="0.05" value="${val}"><span class="b-slider-val">${val.toFixed(2)}</span></div><div class="b-directive">${bDir(dim, val)}</div>`;
+    c.appendChild(d);
+    const inp = d.querySelector('input[type="range"]');
+    inp.addEventListener("input", () => {
+      const v = parseFloat(inp.value);
+      bState.voice.personality[dim] = v;
+      d.querySelector('.b-slider-val').textContent = v.toFixed(2);
+      d.querySelector('.b-directive').textContent = bDir(dim, v);
+      bSchedule();
+    });
+  }
+}
+
+// Expertise list
+function bRenderExpertise() {
+  const c = document.getElementById("b-expertise"); c.innerHTML = "";
+  bState.identity.expertise.forEach((e, i) => {
+    const d = document.createElement("div"); d.className = "b-item";
+    d.innerHTML = `<button class="b-remove">X</button><div class="b-field" style="margin-bottom:6px"><input type="text" value="${esc(e.domain||'')}" placeholder="Domain"></div><div class="b-slider"><span class="b-slider-label">Proficiency</span><input type="range" min="0" max="1" step="0.05" value="${e.proficiency||0.5}"><span class="b-slider-val">${(e.proficiency||0.5).toFixed(2)}</span></div>`;
+    d.querySelector('input[type="text"]').addEventListener("input", ev => { bState.identity.expertise[i].domain = ev.target.value; bSchedule(); });
+    const sl = d.querySelector('input[type="range"]');
+    sl.addEventListener("input", () => { bState.identity.expertise[i].proficiency = parseFloat(sl.value); d.querySelector('.b-slider-val').textContent = parseFloat(sl.value).toFixed(2); bSchedule(); });
+    d.querySelector('.b-remove').addEventListener("click", () => { bState.identity.expertise.splice(i, 1); bRenderExpertise(); bSchedule(); });
+    c.appendChild(d);
+  });
+}
+
+// Channel overrides
+function bRenderChannels() {
+  const c = document.getElementById("b-channels"); c.innerHTML = "";
+  for (const [name, ov] of Object.entries(bState.voice.channelOverrides)) {
+    const d = document.createElement("div"); d.className = "b-item";
+    let html = `<button class="b-remove" data-ch="${esc(name)}">X</button><div class="b-field" style="margin-bottom:8px"><label class="b-label">Channel</label><input type="text" value="${esc(name)}" class="b-ch-name" data-old="${esc(name)}"></div>`;
+    for (const dim of B_DIMS) {
+      const v = ov[dim] !== undefined ? ov[dim] : 0.5;
+      html += `<div class="b-slider"><span class="b-slider-label">${dim}</span><input type="range" min="0" max="1" step="0.05" value="${v}" data-dim="${dim}"><span class="b-slider-val">${typeof ov[dim] === 'number' ? v.toFixed(2) : '-'}</span></div>`;
+    }
+    d.innerHTML = html;
+    d.querySelector('.b-ch-name').addEventListener("change", ev => {
+      const nw = ev.target.value, old = ev.target.dataset.old;
+      if (nw && nw !== old) { bState.voice.channelOverrides[nw] = bState.voice.channelOverrides[old]; delete bState.voice.channelOverrides[old]; bRenderChannels(); bSchedule(); }
+    });
+    d.querySelectorAll('input[type="range"]').forEach(sl => {
+      sl.addEventListener("input", () => { bState.voice.channelOverrides[name][sl.dataset.dim] = parseFloat(sl.value); sl.nextElementSibling.textContent = parseFloat(sl.value).toFixed(2); bSchedule(); });
+    });
+    d.querySelector('.b-remove').addEventListener("click", () => { delete bState.voice.channelOverrides[name]; bRenderChannels(); bSchedule(); });
+    c.appendChild(d);
+  }
+}
+
+// Rules
+function bRenderRules() {
+  const c = document.getElementById("b-rules"); c.innerHTML = "";
+  bState.behavior.rules.forEach((r, i) => {
+    const d = document.createElement("div"); d.className = "b-item";
+    d.innerHTML = `<button class="b-remove">X</button>
+      <div class="b-field" style="margin-bottom:6px"><label class="b-label">ID</label><input type="text" value="${esc(r.id||'')}" data-f="id"></div>
+      <div class="b-field" style="margin-bottom:6px"><label class="b-label">Priority</label><input type="number" value="${r.priority||0}" data-f="priority" style="width:70px"></div>
+      <div class="b-field" style="margin-bottom:6px"><label class="b-label">Condition</label><select data-f="cond"><option value="always" ${r.condition?.type==='always'?'selected':''}>Always</option><option value="when-topic" ${r.condition?.type==='when-topic'?'selected':''}>When Topic</option><option value="when-sentiment" ${r.condition?.type==='when-sentiment'?'selected':''}>When Sentiment</option><option value="when-confidence-below" ${r.condition?.type==='when-confidence-below'?'selected':''}>When Confidence Below</option></select></div>
+      ${r.condition?.type==='when-topic'?`<div class="b-field" style="margin-bottom:6px"><label class="b-label">Topics</label><input type="text" value="${esc((r.condition.topics||[]).join(', '))}" data-f="topics"></div>`:''}
+      ${r.condition?.type==='when-confidence-below'?`<div class="b-slider"><span class="b-slider-label">Threshold</span><input type="range" min="0" max="1" step="0.05" value="${r.condition.threshold||0.3}" data-f="threshold"><span class="b-slider-val">${(r.condition.threshold||0.3).toFixed(2)}</span></div>`:''}
+      <div class="b-field"><label class="b-label">Action</label><select data-f="action"><option value="respond-with-style" ${r.action?.type==='respond-with-style'?'selected':''}>Respond With Style</option><option value="escalate" ${r.action?.type==='escalate'?'selected':''}>Escalate</option><option value="require-confirmation" ${r.action?.type==='require-confirmation'?'selected':''}>Require Confirmation</option><option value="refuse" ${r.action?.type==='refuse'?'selected':''}>Refuse</option></select></div>
+      ${r.action?.type==='escalate'?`<div class="b-field" style="margin-top:6px"><label class="b-label">Target</label><input type="text" value="${esc(r.action.target||'')}" data-f="target"></div><div class="b-field" style="margin-top:6px"><label class="b-label">Reason</label><input type="text" value="${esc(r.action.reason||'')}" data-f="reason"></div>`:''}`;
+    d.querySelectorAll('input[type="text"],input[type="number"],select').forEach(el => {
+      el.addEventListener("change", () => {
+        const f = el.dataset.f;
+        if (f === 'id') bState.behavior.rules[i].id = el.value;
+        else if (f === 'priority') bState.behavior.rules[i].priority = parseInt(el.value)||0;
+        else if (f === 'cond') { bState.behavior.rules[i].condition = { type: el.value }; bRenderRules(); }
+        else if (f === 'topics') bState.behavior.rules[i].condition.topics = el.value.split(',').map(s=>s.trim()).filter(Boolean);
+        else if (f === 'action') { bState.behavior.rules[i].action = { type: el.value }; bRenderRules(); }
+        else if (f === 'target') bState.behavior.rules[i].action.target = el.value;
+        else if (f === 'reason') bState.behavior.rules[i].action.reason = el.value;
+        bSchedule();
+      });
+    });
+    d.querySelectorAll('input[type="range"]').forEach(sl => {
+      sl.addEventListener("input", () => { bState.behavior.rules[i].condition.threshold = parseFloat(sl.value); sl.nextElementSibling.textContent = parseFloat(sl.value).toFixed(2); bSchedule(); });
+    });
+    d.querySelector('.b-remove').addEventListener("click", () => { bState.behavior.rules.splice(i,1); bRenderRules(); bSchedule(); });
+    c.appendChild(d);
+  });
+}
+
+// Boundaries
+function bRenderBoundaries() {
+  const c = document.getElementById("b-boundaries"); c.innerHTML = "";
+  bState.behavior.boundaries.forEach((b, i) => {
+    const d = document.createElement("div"); d.className = "b-item";
+    d.innerHTML = `<button class="b-remove">X</button>
+      <div class="b-field" style="margin-bottom:6px"><label class="b-label">Description</label><textarea data-f="desc">${esc(b.description||'')}</textarea></div>
+      <div class="b-field" style="margin-bottom:6px"><label class="b-label">Enforcement</label><select data-f="enf"><option value="hard" ${b.enforcement==='hard'?'selected':''}>Hard</option><option value="soft" ${b.enforcement==='soft'?'selected':''}>Soft</option></select></div>`;
+    d.querySelectorAll('textarea,select').forEach(el => {
+      el.addEventListener("change", () => {
+        if (el.dataset.f === 'desc') bState.behavior.boundaries[i].description = el.value;
+        if (el.dataset.f === 'enf') bState.behavior.boundaries[i].enforcement = el.value;
+        bSchedule();
+      });
+    });
+    d.querySelector('.b-remove').addEventListener("click", () => { bState.behavior.boundaries.splice(i,1); bRenderBoundaries(); bSchedule(); });
+    c.appendChild(d);
+  });
+}
+
+function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+// Bind data-bp inputs
+document.querySelectorAll("[data-bp]").forEach(el => {
+  const path = el.dataset.bp;
+  const init = bGetPath(bState, path);
+  if (el.type === "checkbox") { el.checked = !!init; el.addEventListener("change", () => { bSetPath(bState, path, el.checked); bSchedule(); }); }
+  else if (el.tagName === "SELECT") { if (init) el.value = init; el.addEventListener("change", () => { bSetPath(bState, path, el.value); bSchedule(); }); }
+  else { if (init) el.value = init; el.addEventListener("input", () => { bSetPath(bState, path, el.value); bSchedule(); }); }
+});
+
+// Presets
+document.querySelectorAll("[data-bpreset]").forEach(btn => {
+  btn.addEventListener("click", () => { bState.voice.personality = { ...B_PRESETS[btn.dataset.bpreset] }; bRenderPersonality(); bSchedule(); });
+});
+
+// Add buttons
+document.querySelectorAll("[data-badd]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    switch(btn.dataset.badd) {
+      case "expertise": bState.identity.expertise.push({ domain: "", proficiency: 0.5 }); bRenderExpertise(); break;
+      case "channel": { const n = prompt("Channel name (e.g. slack, email):"); if(n) { bState.voice.channelOverrides[n] = {}; bRenderChannels(); } break; }
+      case "rule": bState.behavior.rules.push({ id: "", priority: 0, condition: { type: "always" }, action: { type: "respond-with-style" } }); bRenderRules(); break;
+      case "boundary": bState.behavior.boundaries.push({ description: "", enforcement: "hard" }); bRenderBoundaries(); break;
+    }
+    bSchedule();
+  });
+});
+
+// Output tabs
+document.querySelectorAll(".b-out-tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".b-out-tab").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active"); bTab = btn.dataset.btab; bShowOutput();
+  });
+});
+
+// Download
+document.getElementById("b-download").addEventListener("click", () => {
+  let content, filename;
+  switch(bTab) {
+    case "yaml": content = bOutput.yaml; filename = (bState.id||'agent')+'.agent.yaml'; break;
+    case "typescript": content = bOutput.codeTs; filename = "agent.ts"; break;
+    case "python": content = bOutput.codePy; filename = "agent.py"; break;
+    default: content = bOutput.prompt; filename = "prompt.txt";
+  }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([content], {type:"text/plain"}));
+  a.download = filename; a.click();
+});
+
+// Copy
+document.getElementById("b-copy").addEventListener("click", () => {
+  const content = bTab === "yaml" ? bOutput.yaml : bTab === "typescript" ? bOutput.codeTs : bTab === "python" ? bOutput.codePy : bOutput.prompt;
+  navigator.clipboard.writeText(content).then(() => {
+    const btn = document.getElementById("b-copy"); btn.textContent = "Copied!"; setTimeout(() => { btn.textContent = "Copy"; }, 1500);
+  });
+});
+
+// Init builder
+bRenderPersonality();
+bRenderExpertise();
+bRenderChannels();
+bRenderRules();
+bRenderBoundaries();
+bRender();
+</script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "grain-monorepo",
+  "private": true,
+  "version": "0.2.0",
+  "description": "Grain — a structured data format for describing AI agents",
+  "workspaces": [
+    "sdk/typescript"
+  ],
+  "scripts": {
+    "build": "npm run build -w sdk/typescript",
+    "test": "npm test -w sdk/typescript",
+    "validate": "npx tsx sdk/typescript/src/load.ts",
+    "example": "npx tsx sdk/typescript/src/load.ts examples/customer-support.agent.yaml"
+  },
+  "devDependencies": {
+    "@vercel/node": "^5.0.0"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,56 @@
+export { Grain } from "./grain.js"
+export { Presets } from "./presets.js"
+export { toBigFive } from "./types.js"
+export { validateSpec } from "./validate.js"
+export { resolveDefaults } from "./defaults.js"
+export { generateSystemPrompt } from "./prompt-generator.js"
+export type { ValidationError } from "./validate.js"
+
+export type {
+  AgentSpec,
+  AgentMeta,
+  ModelPreference,
+  AgentIdentity,
+  DomainExpertise,
+  AgentRelationship,
+  AgentVoice,
+  PersonalityVector,
+  LanguageStyle,
+  BigFiveMapping,
+  AgentCognition,
+  ReasoningStyle,
+  DecisionMaking,
+  UncertaintyHandling,
+  TaskStrategy,
+  AgentCapabilities,
+  ToolCapability,
+  SkillDefinition,
+  KnowledgeSource,
+  OutputFormat,
+  AgentBehavior,
+  BehaviorRule,
+  RuleCondition,
+  RuleAction,
+  Boundary,
+  BehaviorTrigger,
+  TriggerEvent,
+  EscalationPolicy,
+  EscalationCondition,
+  AgentMemory,
+  RetentionPolicy,
+  ContextStrategy,
+  StateSchema,
+  AgentCommunication,
+  ChannelConfig,
+  InputProcessing,
+  OutputProcessing,
+  InterAgentConfig,
+  AgentAdaptation,
+  DriftBound,
+  LearningConfig,
+  FeedbackConfig,
+  AgentObservability,
+  LoggingConfig,
+  MetricDefinition,
+  SuccessCriterion,
+} from "./types.js"

@@ -1,0 +1,27 @@
+{
+  "outputDirectory": "docs",
+  "cleanUrls": true,
+  "buildCommand": "npm run build",
+  "functions": {
+    "api/build.mjs": {
+      "includeFiles": "{sdk/typescript/agentspec.schema.json,spec/agentspec.schema.json}"
+    }
+  },
+  "headers": [
+    {
+      "source": "/v1/schema.json",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Content-Type", "value": "application/json" }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "POST, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
+      ]
+    }
+  ]
+}
